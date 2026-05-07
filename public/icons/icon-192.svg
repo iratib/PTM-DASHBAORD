@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#08101E"/>
+  <g transform="translate(96,90)" fill="#3B82F6">
+    <path d="M-8,-45 L8,-45 L22,8 L60,0 L60,11 L22,22 L26,45 L41,52 L41,60 L21,55 L0,60 L-21,55 L-41,60 L-41,52 L-26,45 L-22,22 L-60,11 L-60,0 L-22,8 Z" opacity="0.95"/>
+  </g>
+  <text x="96" y="158" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#3B82F6" text-anchor="middle" letter-spacing="3">PTM</text>
+</svg>

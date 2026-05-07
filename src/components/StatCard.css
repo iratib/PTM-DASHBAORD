@@ -1,0 +1,62 @@
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: var(--transition);
+  animation: fadeUp 0.4s ease-out;
+}
+
+.stat-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.sc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-blue   .sc-icon { background: var(--primary-dim);  color: var(--primary);  border: 1px solid rgba(59,130,246,0.2); }
+.stat-sky    .sc-icon { background: var(--sky-dim);       color: var(--sky);      border: 1px solid rgba(14,165,233,0.2); }
+.stat-success .sc-icon { background: var(--success-dim); color: var(--success);  border: 1px solid rgba(34,197,94,0.2); }
+.stat-warning .sc-icon { background: var(--warning-dim); color: var(--warning);  border: 1px solid rgba(245,158,11,0.2); }
+.stat-danger  .sc-icon { background: var(--danger-dim);  color: var(--danger);   border: 1px solid rgba(244,63,94,0.2); }
+.stat-purple  .sc-icon { background: var(--purple-dim);  color: var(--purple);   border: 1px solid rgba(167,139,250,0.2); }
+
+.sc-body { flex: 1; min-width: 0; }
+
+.sc-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.sc-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sc-sub {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .sc-value { font-size: 22px; }
+  .stat-card { padding: 14px 16px; }
+}

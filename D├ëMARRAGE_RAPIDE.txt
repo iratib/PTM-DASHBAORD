@@ -1,0 +1,47 @@
+╔════════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║        ✈️  PTM CONNEXION DASHBOARD - DÉMARRAGE RAPIDE ✈️          ║
+║                                                                    ║
+║                  Application Prête à Utiliser!                   ║
+║                                                                    ║
+╚════════════════════════════════════════════════════════════════════╝
+
+🎯 3 ÉTAPES POUR DÉMARRER:
+
+1️⃣  Ouvrir le Terminal dans le dossier du projet
+
+2️⃣  Taper exactement:
+   npm install
+   npm run dev
+
+3️⃣  Ouvrir dans le navigateur:
+   http://localhost:5173
+
+════════════════════════════════════════════════════════════════════
+
+✨ VOUS DEVRIEZ VOIR:
+
+✅ Logo "✈️ PTM Dashboard" en haut
+✅ Zone de drag-drop au centre
+✅ "Importer vos données"
+
+════════════════════════════════════════════════════════════════════
+
+📊 UTILISER L'APP:
+
+1. Préparer un fichier Excel avec vos données
+2. Glisser-déposer le fichier sur la zone
+3. Le dashboard s'affiche automatiquement!
+
+════════════════════════════════════════════════════════════════════
+
+💾 NOTES IMPORTANTES:
+
+- Le terminal doit rester OUVERT pendant que vous utilisez l'app
+- Pour arrêter: Ctrl + C dans le terminal
+- Vos données sont sauvegardées localement
+
+════════════════════════════════════════════════════════════════════
+
+✅ Tout est configuré et prêt! Bon développement! 🚀
+
