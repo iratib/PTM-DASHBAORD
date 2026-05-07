@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/logo.png'],
+      includeAssets: ['icons/logo.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'favicon.ico'],
       manifest: {
         name: 'RAM Handling — PTM Dashboard',
         short_name: 'PTM Dashboard',
@@ -22,17 +22,9 @@ export default defineConfig({
         start_url: base,
         scope: base,
         icons: [
-          {
-            src: 'icons/logo.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'icons/logo.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

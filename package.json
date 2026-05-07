@@ -9,15 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.380.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.10.0",
-    "lucide-react": "^0.380.0",
-    "xlsx": "^0.18.5",
-    "date-fns": "^2.30.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
+    "sharp": "^0.34.5",
     "vite": "^4.4.0",
     "vite-plugin-pwa": "^0.17.0"
   }
