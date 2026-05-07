@@ -1,47 +1,64 @@
-import React, { useState, useEffect } from 'react'
-import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import Dashboard from './components/Dashboard'
 import excelService from './services/excelService'
 import googleSheetsService from './services/googleSheetsService'
-import demoData from './demoData'
 import './App.css'
 
 function App() {
   const [data, setData]             = useState([])
   const [lastUpdate, setLastUpdate] = useState(null)
   const [isLoading, setIsLoading]   = useState(false)
-  const [syncStatus, setSyncStatus] = useState('idle')   // 'idle'|'loading'|'success'|'error'
+  const [syncStatus, setSyncStatus] = useState('idle')
   const [syncError, setSyncError]   = useState('')
-  const [pushStatus, setPushStatus] = useState('idle')   // 'idle'|'pushing'|'pushed'|'error'
-  const [installPrompt, setInstallPrompt] = useState(null)
-  const [isInstalled, setIsInstalled]     = useState(false)
+  const [pushStatus, setPushStatus] = useState('idle')
 
-  /* ── PWA install prompt ── */
+  // PWA install
+  const [installPrompt, setInstallPrompt]   = useState(null)
+  const [isInstalled, setIsInstalled]       = useState(false)
+  const [showInstallTip, setShowInstallTip] = useState(false)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true
+
   useEffect(() => {
+    if (isStandalone) { setIsInstalled(true); return }
+
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e) }
     window.addEventListener('beforeinstallprompt', handler)
-    window.addEventListener('appinstalled', () => setIsInstalled(true))
-    // déjà installée ?
-    if (window.matchMedia('(display-mode: standalone)').matches) setIsInstalled(true)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    window.addEventListener('appinstalled', () => { setIsInstalled(true); setInstallPrompt(null) })
+
+    // Sur desktop Chrome le prompt peut tarder — on affiche le tip après 3s si pas de prompt
+    const timer = setTimeout(() => {
+      if (!installPrompt && !isInstalled) setShowInstallTip(true)
+    }, 3000)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      clearTimeout(timer)
+    }
   }, [])
 
   const handleInstall = async () => {
-    if (!installPrompt) return
-    installPrompt.prompt()
-    const { outcome } = await installPrompt.userChoice
-    if (outcome === 'accepted') setIsInstalled(true)
-    setInstallPrompt(null)
+    if (installPrompt) {
+      installPrompt.prompt()
+      const { outcome } = await installPrompt.userChoice
+      if (outcome === 'accepted') setIsInstalled(true)
+      setInstallPrompt(null)
+      setShowInstallTip(false)
+    } else {
+      setShowInstallTip(v => !v)
+    }
   }
 
-  /* ── Data handlers ── */
+  /* ── Data ── */
   const handleDataLoaded = async (newData) => {
     setData(newData)
     const now = new Date().toISOString()
     setLastUpdate(now)
-    excelService.saveToLocalStorage('ptm_data', newData)
-    excelService.saveToLocalStorage('last_update', now)
+    // sauvegarde pour refresh de page (session en cours uniquement)
+    sessionStorage.setItem('ptm_data',    JSON.stringify(newData))
+    sessionStorage.setItem('last_update', now)
 
     setPushStatus('pushing')
     try {
@@ -60,8 +77,8 @@ function App() {
     setLastUpdate(null)
     setSyncStatus('idle')
     setSyncError('')
-    excelService.saveToLocalStorage('ptm_data', null)
-    excelService.saveToLocalStorage('last_update', null)
+    sessionStorage.removeItem('ptm_data')
+    sessionStorage.removeItem('last_update')
   }
 
   const handleGoogleSync = async () => {
@@ -70,7 +87,7 @@ function App() {
     try {
       const sheetData = await googleSheetsService.sync()
       if (!sheetData.length) throw new Error('Le sheet est vide ou les colonnes ne correspondent pas')
-      handleDataLoaded(sheetData)
+      await handleDataLoaded(sheetData)
       setSyncStatus('success')
       setTimeout(() => setSyncStatus('idle'), 3000)
     } catch (err) {
@@ -79,15 +96,19 @@ function App() {
     }
   }
 
+  // Restaurer uniquement si la session est déjà active (refresh page)
   useEffect(() => {
-    const savedData       = excelService.getFromLocalStorage('ptm_data')
-    const savedLastUpdate = excelService.getFromLocalStorage('last_update')
-    if (savedData && Array.isArray(savedData) && savedData.length > 0) {
-      setData(savedData)
-    } else if (import.meta.env.DEV) {
-      handleDataLoaded(demoData)
+    const savedData       = sessionStorage.getItem('ptm_data')
+    const savedLastUpdate = sessionStorage.getItem('last_update')
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setData(parsed)
+          if (savedLastUpdate) setLastUpdate(savedLastUpdate)
+        }
+      } catch { /* ignore */ }
     }
-    if (savedLastUpdate) setLastUpdate(savedLastUpdate)
   }, [])
 
   const hasData = data.length > 0
@@ -96,8 +117,6 @@ function App() {
     <div className="app">
       <nav className="navbar">
         <div className="navbar-content">
-
-          {/* Logo RAM Handling */}
           <div className="navbar-brand">
             <img src="icons/logo.png" alt="RAM Handling" className="brand-logo" />
             <div className="brand-text">
@@ -107,22 +126,19 @@ function App() {
           </div>
 
           <div className="navbar-actions">
-            {/* Indicateur push */}
             {pushStatus !== 'idle' && (
               <div className={`push-indicator push-${pushStatus}`}>
                 {pushStatus === 'pushing' && <><RefreshCw size={13} className="spin" /> Envoi vers Google Sheets…</>}
                 {pushStatus === 'pushed'  && <><CheckCircle size={13} /> Google Sheets mis à jour</>}
-                {pushStatus === 'error'   && <><CloudOff size={13} /> Échec envoi Google Sheets</>}
+                {pushStatus === 'error'   && <><CloudOff size={13} /> Échec envoi</>}
               </div>
             )}
 
-            {/* Bouton sync Google Sheets */}
             <div className="sync-wrapper">
               <button
                 className={`btn-sync ${syncStatus}`}
                 onClick={handleGoogleSync}
                 disabled={syncStatus === 'loading'}
-                title="Synchroniser depuis Google Sheets"
               >
                 {syncStatus === 'loading' ? <RefreshCw size={14} className="spin" />
                   : syncStatus === 'error'   ? <CloudOff size={14} />
@@ -138,12 +154,25 @@ function App() {
               )}
             </div>
 
-            {/* Bouton installer l'app */}
-            {!isInstalled && installPrompt && (
-              <button className="btn-install" onClick={handleInstall} title="Installer l'application">
-                <Download size={14} />
-                Installer l'app
-              </button>
+            {/* Bouton installer — visible sur tous les navigateurs */}
+            {!isInstalled && (
+              <div className="install-wrapper">
+                <button className="btn-install" onClick={handleInstall}>
+                  <Download size={14} />
+                  Installer l'app
+                </button>
+                {showInstallTip && !installPrompt && (
+                  <div className="install-tip">
+                    <button className="install-tip-close" onClick={() => setShowInstallTip(false)}>
+                      <X size={12} />
+                    </button>
+                    <strong>Installer sur PC (Chrome)</strong>
+                    <p>Clique sur l'icône <span className="install-tip-icon">⊕</span> dans la barre d'adresse, puis "Installer".</p>
+                    <strong>Sur iPhone (Safari)</strong>
+                    <p>Partager <span className="install-tip-icon">⬆</span> → "Sur l'écran d'accueil"</p>
+                  </div>
+                )}
+              </div>
             )}
 
             {hasData && (
