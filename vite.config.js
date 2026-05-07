@@ -10,11 +10,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon.svg', 'icons/icon-192.svg', 'icons/icon-512.svg'],
+      includeAssets: ['icons/logo.png'],
       manifest: {
-        name: 'PTM Connexion Dashboard',
+        name: 'RAM Handling — PTM Dashboard',
         short_name: 'PTM Dashboard',
-        description: 'Dashboard de gestion des connexions passagers en transit (PTM)',
+        description: 'Dashboard de gestion des connexions passagers en transit PTM',
         theme_color: '#08101E',
         background_color: '#08101E',
         display: 'standalone',
@@ -22,8 +22,17 @@ export default defineConfig({
         start_url: base,
         scope: base,
         icons: [
-          { src: 'icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
-          { src: 'icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          {
+            src: 'icons/logo.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'icons/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
         ],
       },
       workbox: {

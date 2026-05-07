@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Plane, FolderOpen, RefreshCw, CloudOff, CheckCircle, Upload } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import Dashboard from './components/Dashboard'
 import excelService from './services/excelService'
@@ -8,13 +8,34 @@ import demoData from './demoData'
 import './App.css'
 
 function App() {
-  const [data, setData]           = useState([])
+  const [data, setData]             = useState([])
   const [lastUpdate, setLastUpdate] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [syncStatus, setSyncStatus] = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
+  const [isLoading, setIsLoading]   = useState(false)
+  const [syncStatus, setSyncStatus] = useState('idle')   // 'idle'|'loading'|'success'|'error'
   const [syncError, setSyncError]   = useState('')
-  const [pushStatus, setPushStatus] = useState('idle') // 'idle' | 'pushing' | 'pushed' | 'error'
+  const [pushStatus, setPushStatus] = useState('idle')   // 'idle'|'pushing'|'pushed'|'error'
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [isInstalled, setIsInstalled]     = useState(false)
 
+  /* ── PWA install prompt ── */
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e) }
+    window.addEventListener('beforeinstallprompt', handler)
+    window.addEventListener('appinstalled', () => setIsInstalled(true))
+    // déjà installée ?
+    if (window.matchMedia('(display-mode: standalone)').matches) setIsInstalled(true)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') setIsInstalled(true)
+    setInstallPrompt(null)
+  }
+
+  /* ── Data handlers ── */
   const handleDataLoaded = async (newData) => {
     setData(newData)
     const now = new Date().toISOString()
@@ -22,7 +43,6 @@ function App() {
     excelService.saveToLocalStorage('ptm_data', newData)
     excelService.saveToLocalStorage('last_update', now)
 
-    // Push automatique vers Google Sheets
     setPushStatus('pushing')
     try {
       await googleSheetsService.push(newData)
@@ -59,7 +79,7 @@ function App() {
     }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     const savedData       = excelService.getFromLocalStorage('ptm_data')
     const savedLastUpdate = excelService.getFromLocalStorage('last_update')
     if (savedData && Array.isArray(savedData) && savedData.length > 0) {
@@ -76,10 +96,10 @@ function App() {
     <div className="app">
       <nav className="navbar">
         <div className="navbar-content">
+
+          {/* Logo RAM Handling */}
           <div className="navbar-brand">
-            <div className="brand-icon">
-              <Plane size={17} />
-            </div>
+            <img src="icons/logo.png" alt="RAM Handling" className="brand-logo" />
             <div className="brand-text">
               <h1>PTM Dashboard</h1>
               <p>Gestion des connexions</p>
@@ -87,7 +107,7 @@ function App() {
           </div>
 
           <div className="navbar-actions">
-            {/* Indicateur de push automatique après import Excel */}
+            {/* Indicateur push */}
             {pushStatus !== 'idle' && (
               <div className={`push-indicator push-${pushStatus}`}>
                 {pushStatus === 'pushing' && <><RefreshCw size={13} className="spin" /> Envoi vers Google Sheets…</>}
@@ -96,7 +116,7 @@ function App() {
               </div>
             )}
 
-            {/* Bouton sync Google Sheets — toujours visible */}
+            {/* Bouton sync Google Sheets */}
             <div className="sync-wrapper">
               <button
                 className={`btn-sync ${syncStatus}`}
@@ -104,15 +124,10 @@ function App() {
                 disabled={syncStatus === 'loading'}
                 title="Synchroniser depuis Google Sheets"
               >
-                {syncStatus === 'loading' ? (
-                  <RefreshCw size={14} className="spin" />
-                ) : syncStatus === 'error' ? (
-                  <CloudOff size={14} />
-                ) : syncStatus === 'success' ? (
-                  <CheckCircle size={14} />
-                ) : (
-                  <RefreshCw size={14} />
-                )}
+                {syncStatus === 'loading' ? <RefreshCw size={14} className="spin" />
+                  : syncStatus === 'error'   ? <CloudOff size={14} />
+                  : syncStatus === 'success' ? <CheckCircle size={14} />
+                  : <RefreshCw size={14} />}
                 {syncStatus === 'loading' ? 'Synchronisation…'
                   : syncStatus === 'error'   ? 'Échec sync'
                   : syncStatus === 'success' ? 'Synchronisé'
@@ -122,6 +137,14 @@ function App() {
                 <div className="sync-error-tooltip">{syncError}</div>
               )}
             </div>
+
+            {/* Bouton installer l'app */}
+            {!isInstalled && installPrompt && (
+              <button className="btn-install" onClick={handleInstall} title="Installer l'application">
+                <Download size={14} />
+                Installer l'app
+              </button>
+            )}
 
             {hasData && (
               <>
@@ -149,16 +172,12 @@ function App() {
             <FileUpload onDataLoaded={handleDataLoaded} isLoading={isLoading} />
           </div>
         ) : (
-          <Dashboard
-            data={data}
-            lastUpdate={lastUpdate}
-            isLoading={isLoading}
-          />
+          <Dashboard data={data} lastUpdate={lastUpdate} isLoading={isLoading} />
         )}
       </main>
 
       <footer className="footer">
-        PTM Connexion Dashboard — {new Date().getFullYear()}
+        RAM Handling — PTM Connexion Dashboard {new Date().getFullYear()}
       </footer>
     </div>
   )
