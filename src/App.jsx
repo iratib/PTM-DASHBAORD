@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X, Clock } from 'lucide-react'
+import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X, Clock, Sparkles } from 'lucide-react'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import FileUpload from './components/FileUpload'
 import Dashboard from './components/Dashboard'
 import excelService from './services/excelService'
@@ -9,6 +10,7 @@ import './App.css'
 const AUTO_REFRESH_MS = 5 * 60 * 1000 // 5 minutes
 
 function App() {
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
   const [data, setData]             = useState([])
   const [lastUpdate, setLastUpdate] = useState(null)
   const [isLoading, setIsLoading]   = useState(false)
@@ -303,6 +305,16 @@ function App() {
       <footer className="footer">
         RAM Handling — PTM Connexion Dashboard {new Date().getFullYear()}
       </footer>
+
+      {needRefresh && (
+        <div className="update-banner">
+          <Sparkles size={15} />
+          <span>Nouvelle version disponible</span>
+          <button className="update-banner-btn" onClick={() => updateServiceWorker(true)}>
+            Mettre à jour
+          </button>
+        </div>
+      )}
     </div>
   )
 }
