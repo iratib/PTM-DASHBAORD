@@ -68,7 +68,48 @@ export const googleSheetsService = {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(data),
     })
-    // avec no-cors on ne peut pas lire la réponse, on suppose le succès si pas d'exception réseau
+  },
+
+  async pushFlightInfo(flightInfo) {
+    if (!SCRIPT_URL) return
+    const rows = Object.entries(flightInfo).map(([vol, info]) => ({
+      vol,
+      immatriculation: info.immatriculation || '',
+      parking:         info.parking || '',
+      bagsReal:        info.bagsReal || '',
+    }))
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'flightInfo', data: rows }),
+    })
+  },
+
+  async syncFlightInfo() {
+    if (!API_KEY || !SHEET_ID) return {}
+    const range = encodeURIComponent('FlightInfo!A1:E1000')
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`
+    try {
+      const response = await fetch(url)
+      if (!response.ok) return {}
+      const json = await response.json()
+      if (!json.values || json.values.length < 2) return {}
+      const headers = json.values[0].map(h => String(h).trim())
+      const result  = {}
+      json.values.slice(1).forEach(row => {
+        const vol = row[0]
+        if (!vol) return
+        const obj = {}
+        headers.slice(1).forEach((header, idx) => {
+          obj[header] = row[idx + 1] !== undefined ? String(row[idx + 1]).trim() : ''
+        })
+        result[vol] = obj
+      })
+      return result
+    } catch {
+      return {}
+    }
   },
 
   parseSheetData(rawData) {

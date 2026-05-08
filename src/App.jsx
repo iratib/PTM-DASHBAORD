@@ -85,9 +85,21 @@ function App() {
     setSyncStatus('loading')
     setSyncError('')
     try {
-      const sheetData = await googleSheetsService.sync()
+      const [sheetData, flightInfo] = await Promise.all([
+        googleSheetsService.sync(),
+        googleSheetsService.syncFlightInfo(),
+      ])
       if (!sheetData.length) throw new Error('Le sheet est vide ou les colonnes ne correspondent pas')
       await handleDataLoaded(sheetData)
+      // Fusionne les infos vol depuis Google Sheets dans localStorage
+      if (Object.keys(flightInfo).length > 0) {
+        const local = (() => {
+          try { return JSON.parse(localStorage.getItem('ptm_flight_info') || '{}') } catch { return {} }
+        })()
+        const merged = { ...flightInfo, ...local }
+        localStorage.setItem('ptm_flight_info', JSON.stringify(merged))
+        window.dispatchEvent(new CustomEvent('ptm_flight_info_synced'))
+      }
       setSyncStatus('success')
       setTimeout(() => setSyncStatus('idle'), 3000)
     } catch (err) {

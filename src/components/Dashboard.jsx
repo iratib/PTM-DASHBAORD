@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend
@@ -8,6 +8,7 @@ import {
   Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding
 } from 'lucide-react'
 import excelService from '../services/excelService'
+import { googleSheetsService } from '../services/googleSheetsService'
 import StatCard from './StatCard'
 import './Dashboard.css'
 
@@ -107,10 +108,29 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
     catch { return {} }
   })
 
+  // Recharge flightInfo depuis localStorage quand le sync Google Sheets le met à jour
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('ptm_flight_info') || '{}')
+        setFlightInfo(saved)
+      } catch { /* ignore */ }
+    }
+    window.addEventListener('ptm_flight_info_synced', handler)
+    return () => window.removeEventListener('ptm_flight_info_synced', handler)
+  }, [])
+
+  const pushDebounceRef = useRef(null)
+
   const updateFlightInfo = (vol, field, value) => {
     setFlightInfo(prev => {
       const updated = { ...prev, [vol]: { ...(prev[vol] || {}), [field]: value } }
       localStorage.setItem('ptm_flight_info', JSON.stringify(updated))
+      // Debounce : envoie à Google Sheets 1,5 s après la dernière frappe
+      clearTimeout(pushDebounceRef.current)
+      pushDebounceRef.current = setTimeout(() => {
+        googleSheetsService.pushFlightInfo(updated).catch(() => {})
+      }, 1500)
       return updated
     })
   }
