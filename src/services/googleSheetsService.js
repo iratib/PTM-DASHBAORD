@@ -89,7 +89,7 @@ export const googleSheetsService = {
   async syncFlightInfo() {
     if (!API_KEY || !SHEET_ID) return {}
     const range = encodeURIComponent('FlightInfo!A1:E1000')
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}&t=${Date.now()}`
     try {
       const response = await fetch(url)
       if (!response.ok) return {}

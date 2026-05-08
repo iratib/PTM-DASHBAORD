@@ -91,13 +91,9 @@ function App() {
       ])
       if (!sheetData.length) throw new Error('Le sheet est vide ou les colonnes ne correspondent pas')
       await handleDataLoaded(sheetData)
-      // Fusionne les infos vol depuis Google Sheets dans localStorage
+      // Google Sheets est la source de vérité — remplace le localStorage directement
       if (Object.keys(flightInfo).length > 0) {
-        const local = (() => {
-          try { return JSON.parse(localStorage.getItem('ptm_flight_info') || '{}') } catch { return {} }
-        })()
-        const merged = { ...flightInfo, ...local }
-        localStorage.setItem('ptm_flight_info', JSON.stringify(merged))
+        localStorage.setItem('ptm_flight_info', JSON.stringify(flightInfo))
         window.dispatchEvent(new CustomEvent('ptm_flight_info_synced'))
       }
       setSyncStatus('success')
