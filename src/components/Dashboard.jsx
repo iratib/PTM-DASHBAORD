@@ -148,7 +148,8 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedOutbound, setSelectedOutbound] = useState(null)
   const [selectedInbound, setSelectedInbound]   = useState(null)
-  const [detailView, setDetailView] = useState('table') // 'table' | 'cards'
+  const [detailView, setDetailView]       = useState('table')  // 'table' | 'cards'
+  const [activeStatCard, setActiveStatCard] = useState(null)    // null | 'outbound' | 'inbound' | 'ptm'
   const [periodFilter, setPeriodFilter] = useState('all') // 'all' | 'day' | 'night'
   const [periodFilterIn, setPeriodFilterIn] = useState('all') // pour onglet arrivées
   const [periodFilterAp, setPeriodFilterAp] = useState('all') // pour onglet appareils
@@ -393,13 +394,132 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
     <div className="dashboard">
       {/* Stats */}
       <div className="stats-grid">
-        <StatCard icon={<PlaneTakeoff size={18}/>} title="Vols Outbound" value={stats.outboundCount} color="blue" />
-        <StatCard icon={<PlaneLanding size={18}/>} title="Vols Inbound"  value={stats.inboundCount}  color="sky" />
-        <StatCard icon={<Users size={18}/>}          title="Total PTM"     value={stats.totalPTM}      color="purple" />
+        <StatCard icon={<PlaneTakeoff size={18}/>} title="Vols Outbound" value={stats.outboundCount} color="blue"   onClick={() => setActiveStatCard('outbound')} />
+        <StatCard icon={<PlaneLanding size={18}/>} title="Vols Inbound"  value={stats.inboundCount}  color="sky"    onClick={() => setActiveStatCard('inbound')} />
+        <StatCard icon={<Users size={18}/>}         title="Total PTM"     value={stats.totalPTM}      color="purple" onClick={() => setActiveStatCard('ptm')} />
         <StatCard icon={<Clock size={18}/>}          title="Temps moyen"   value={`${stats.avgTime} min`} color="success" />
-        <StatCard icon={<AlertTriangle size={18}/>}  title="Critiques"     value={stats.critiques}     color="danger"
-          subtitle="< 30 min" />
+        <StatCard icon={<AlertTriangle size={18}/>}  title="Critiques"     value={stats.critiques}     color="danger" subtitle="< 30 min" />
       </div>
+
+      {/* ── MODAL STAT CARD ── */}
+      {activeStatCard && (() => {
+        const close = () => setActiveStatCard(null)
+
+        const outboundList = Object.values(groupedByOutbound)
+          .filter(g => g.volOutbound)
+          .sort((a, b) => b.totalPTM - a.totalPTM)
+
+        const inboundList = Object.values(groupedByInbound)
+          .filter(g => g.volInbound)
+          .sort((a, b) => b.totalPTM - a.totalPTM)
+
+        const titles = { outbound: 'Vols Outbound', inbound: 'Vols Inbound', ptm: 'Détail PTM par vol' }
+
+        return (
+          <div className="stat-modal-backdrop" onClick={close}>
+            <div className="stat-modal" onClick={e => e.stopPropagation()}>
+              <div className="stat-modal-header">
+                <h3>{titles[activeStatCard]}</h3>
+                <button className="stat-modal-close" onClick={close}>✕</button>
+              </div>
+              <div className="stat-modal-body">
+
+                {/* ── Vols Outbound ── */}
+                {activeStatCard === 'outbound' && (
+                  <table className="stat-modal-table">
+                    <thead>
+                      <tr>
+                        <th>Vol Outbound</th>
+                        <th>Départ</th>
+                        <th>Destination</th>
+                        <th>Inbound</th>
+                        <th>PTM</th>
+                        <th>Critiques</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outboundList.map(g => (
+                        <tr key={g.volOutbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
+                          <td><span className="flight-tag">{g.volOutbound}</span></td>
+                          <td className="date-cell">{fmtTime(g.stdOutbound)}</td>
+                          <td className="smt-route">{g.segmentOutbound ? fmtRoute(g.segmentOutbound) : '—'}</td>
+                          <td className="num-cell">{g.connections.length}</td>
+                          <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                          <td className="num-cell">{g.critiques > 0 ? <span className="status-pill pill-critique">{g.critiques}</span> : <span className="smt-zero">—</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* ── Vols Inbound ── */}
+                {activeStatCard === 'inbound' && (
+                  <table className="stat-modal-table">
+                    <thead>
+                      <tr>
+                        <th>Vol Inbound</th>
+                        <th>Arrivée</th>
+                        <th>Origine</th>
+                        <th>Connexions</th>
+                        <th>PTM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inboundList.map(g => (
+                        <tr key={g.volInbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
+                          <td><span className="flight-tag">{g.volInbound}</span></td>
+                          <td className="date-cell">{fmtTime(g.staInbound)}</td>
+                          <td className="smt-route">{g.segmentInbound ? fmtRoute(g.segmentInbound) : '—'}</td>
+                          <td className="num-cell">{g.connections.length}</td>
+                          <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* ── Total PTM ── */}
+                {activeStatCard === 'ptm' && (() => {
+                  const total = outboundList.reduce((s, g) => s + g.totalPTM, 0)
+                  return (
+                    <table className="stat-modal-table">
+                      <thead>
+                        <tr>
+                          <th>Vol Outbound</th>
+                          <th>Départ</th>
+                          <th>Destination</th>
+                          <th>PTM</th>
+                          <th>% du total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {outboundList.map(g => {
+                          const pct = total > 0 ? Math.round((g.totalPTM / total) * 100) : 0
+                          return (
+                            <tr key={g.volOutbound}>
+                              <td><span className="flight-tag">{g.volOutbound}</span></td>
+                              <td className="date-cell">{fmtTime(g.stdOutbound)}</td>
+                              <td className="smt-route">{g.segmentOutbound ? fmtRoute(g.segmentOutbound) : '—'}</td>
+                              <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                              <td>
+                                <div className="smt-bar-wrap">
+                                  <div className="smt-bar" style={{ width: `${pct}%` }} />
+                                  <span className="smt-pct">{pct}%</span>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  )
+                })()}
+
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Filters */}
       <div className="filters-bar">

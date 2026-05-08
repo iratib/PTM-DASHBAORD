@@ -810,6 +810,129 @@
 .cx-detail-table tbody tr:hover td     { background: rgba(255,255,255,0.02); }
 .cx-detail-table tbody tr.row-critique td { background: rgba(244,63,94,0.04); }
 
+/* ── STAT CARD MODAL ── */
+.stat-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.stat-modal {
+  background: #0f1e33;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  animation: fadeUp 0.22s ease-out;
+}
+
+.stat-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.stat-modal-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.stat-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+.stat-modal-body {
+  overflow-y: auto;
+  padding: 14px 22px 20px;
+}
+
+.stat-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stat-modal-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.stat-modal-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
+.stat-modal-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.stat-modal-table tbody tr.smt-alert td { background: rgba(244,63,94,0.03); }
+
+.smt-ptm  { color: var(--primary) !important; font-weight: 700; }
+.smt-route { color: var(--text-muted); font-size: 12px; }
+.smt-zero  { color: var(--text-faint); }
+
+.smt-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.smt-bar {
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), #7c3aed);
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+
+.smt-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .stat-modal { max-height: 90vh; }
+  .stat-modal-table th,
+  .stat-modal-table td { padding: 7px 8px; font-size: 12px; }
+}
+
 /* ── VIEW TOGGLE (liste / cartes boarding-pass) ── */
 .cx-view-toggle {
   display: flex;
