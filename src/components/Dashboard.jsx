@@ -151,9 +151,12 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
   }
 
   const enrichedData = useMemo(() => data.map(item => {
-    const connectionTime = parseConnexionMinutes(item['Temps de connexion'])
+    // Accepte "Temps de connexion" (ancien format) et "temps de connexion" (Feuil2)
+    const connexionRaw = item['Temps de connexion'] || item['temps de connexion'] || null
+    const connectionTime = parseConnexionMinutes(connexionRaw)
     return {
       ...item,
+      'Temps de connexion': connexionRaw || '', // normalise pour l'affichage dans les tableaux
       connectionTime,
       ptm: Number(item['PTM']) || 0,
       status: connectionStatus(connectionTime),
