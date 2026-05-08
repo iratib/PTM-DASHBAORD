@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import {
   Plane, Clock, AlertTriangle, Users, ArrowUpRight,
-  Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding
+  Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding, MapPin
 } from 'lucide-react'
 import excelService from '../services/excelService'
 import { googleSheetsService } from '../services/googleSheetsService'
@@ -81,6 +81,21 @@ const extractHour = (value) => {
 const isDayFlight  = (std) => { const h = extractHour(std); return h !== null && h >= 6 && h < 18 }
 const isNightFlight = (std) => { const h = extractHour(std); return h !== null && (h >= 18 || h < 6) }
 
+// Extrait uniquement l'heure HH:MM d'une chaîne datetime
+const fmtTime = (value) => {
+  if (!value) return ''
+  const m = String(value).match(/(\d{1,2}):(\d{2})/)
+  return m ? `${m[1].padStart(2,'0')}:${m[2]}` : ''
+}
+
+// Formate un segment IATA "CMN-CDG" → "CMN → CDG"
+const fmtRoute = (segment) => {
+  if (!segment) return ''
+  const idx = segment.indexOf('-')
+  if (idx === -1) return segment
+  return `${segment.slice(0, idx)} → ${segment.slice(idx + 1)}`
+}
+
 const DIST_COLORS = {
   '0-30 min':   '#F43F5E',
   '30-60 min':  '#F59E0B',
@@ -151,8 +166,9 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       const key = item['Vol Outbound']
       if (!groups[key]) {
         groups[key] = {
-          volOutbound: key,
-          stdOutbound: item['STD Outbound'],
+          volOutbound:     key,
+          stdOutbound:     item['STD Outbound'],
+          segmentOutbound: item['Segment Outbound'] || '',
           connections: [],
           totalPTM: 0,
           critiques: 0,
@@ -179,8 +195,9 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       if (!key) return
       if (!groups[key]) {
         groups[key] = {
-          volInbound: key,
-          staInbound: item['STA Inbound'],
+          volInbound:     key,
+          staInbound:     item['STA Inbound'],
+          segmentInbound: item['Segment Inbound'] || '',
           connections: [],
           totalPTM: 0,
           critiques: 0,
@@ -461,7 +478,6 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
               <div className="cx-grid">
                 {cards.map(g => {
                   const bags = g.totalPTM * 2
-                  const isDay = isDayFlight(g.stdOutbound)
                   const info = flightInfo[g.volOutbound] || {}
                   return (
                     <button
@@ -469,31 +485,27 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                       className={`cx-card ${g.critiques > 0 ? 'cx-card--alert' : ''}`}
                       onClick={() => setSelectedOutbound(g.volOutbound)}
                     >
-                      <div className="cx-card-top">
-                        <div className="cx-flight-icon">
-                          <Plane size={16} />
-                        </div>
-                        <div className="cx-card-badges">
-                          <span className={`cx-period-badge ${isDay ? 'badge-day' : 'badge-night'}`}>
-                            {isDay ? '☀ Jour' : '☽ Nuit'}
-                          </span>
+                      <div className="cx-card-header">
+                        <div className="cx-card-header-left">
+                          <div className="cx-flight-icon"><Plane size={16} /></div>
+                          <span className="cx-vol">{g.volOutbound}</span>
                           {g.critiques > 0 && (
                             <span className="cx-alert-badge">
-                              <AlertTriangle size={12} />
-                              {g.critiques}
+                              <AlertTriangle size={11} />{g.critiques}
                             </span>
                           )}
                         </div>
+                        <span className="cx-std-time">{fmtTime(g.stdOutbound)}</span>
                       </div>
 
-                      <div className="cx-vol">{g.volOutbound}</div>
-                      <div className="cx-std">{fmtDate(g.stdOutbound)}</div>
-                      {(info.immatriculation || info.parking) && (
-                        <div className="cx-info-tags">
-                          {info.immatriculation && <span className="cx-info-tag">{info.immatriculation}</span>}
-                          {info.parking && <span className="cx-info-tag cx-info-tag--parking">{info.parking}</span>}
+                      {g.segmentOutbound && (
+                        <div className="cx-route">
+                          <MapPin size={11} />
+                          {fmtRoute(g.segmentOutbound)}
                         </div>
                       )}
+
+                      <div className="cx-divider" />
 
                       <div className="cx-metrics">
                         <div className="cx-metric">
@@ -513,6 +525,16 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                           }
                           <span className="cx-metric-lbl">Bags</span>
                         </div>
+                      </div>
+
+                      <div className="cx-card-footer">
+                        <div className="cx-card-footer-left">
+                          {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
+                          {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
+                        </div>
+                        {(info.immatriculation || info.parking) && (
+                          <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                        )}
                       </div>
                     </button>
                   )
@@ -659,39 +681,36 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
 
               <div className="cx-grid">
                 {cards.map(g => {
-                  const info  = flightInfo[g.volInbound] || {}
-                  const isDay = isDayFlight(g.staInbound)
+                  const info = flightInfo[g.volInbound] || {}
                   return (
                     <button
                       key={g.volInbound}
                       className={`cx-card ${g.critiques > 0 ? 'cx-card--alert' : ''}`}
                       onClick={() => setSelectedInbound(g.volInbound)}
                     >
-                      <div className="cx-card-top">
-                        <div className="cx-flight-icon" style={{ background: 'var(--sky-dim)', borderColor: 'rgba(14,165,233,0.2)', color: 'var(--sky)' }}>
-                          <PlaneLanding size={16} />
-                        </div>
-                        <div className="cx-card-badges">
-                          <span className={`cx-period-badge ${isDay ? 'badge-day' : 'badge-night'}`}>
-                            {isDay ? '☀ Jour' : '☽ Nuit'}
-                          </span>
+                      <div className="cx-card-header">
+                        <div className="cx-card-header-left">
+                          <div className="cx-flight-icon" style={{ background: 'var(--sky-dim)', borderColor: 'rgba(14,165,233,0.2)', color: 'var(--sky)' }}>
+                            <PlaneLanding size={16} />
+                          </div>
+                          <span className="cx-vol">{g.volInbound}</span>
                           {g.critiques > 0 && (
                             <span className="cx-alert-badge">
-                              <AlertTriangle size={12} />
-                              {g.critiques}
+                              <AlertTriangle size={11} />{g.critiques}
                             </span>
                           )}
                         </div>
+                        <span className="cx-std-time" style={{ color: 'var(--sky)' }}>{fmtTime(g.staInbound)}</span>
                       </div>
 
-                      <div className="cx-vol">{g.volInbound}</div>
-                      <div className="cx-std">{fmtDate(g.staInbound)}</div>
-                      {(info.immatriculation || info.parking) && (
-                        <div className="cx-info-tags">
-                          {info.immatriculation && <span className="cx-info-tag">{info.immatriculation}</span>}
-                          {info.parking && <span className="cx-info-tag cx-info-tag--parking">{info.parking}</span>}
+                      {g.segmentInbound && (
+                        <div className="cx-route">
+                          <MapPin size={11} />
+                          {fmtRoute(g.segmentInbound)}
                         </div>
                       )}
+
+                      <div className="cx-divider" />
 
                       <div className="cx-metrics">
                         <div className="cx-metric">
@@ -705,12 +724,22 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                         </div>
                         <div className="cx-sep" />
                         <div className="cx-metric">
-                          {(flightInfo[g.volInbound] || {}).bagsReal
-                            ? <span className="cx-metric-val cx-bags-real-val">{parseInt((flightInfo[g.volInbound] || {}).bagsReal)}</span>
+                          {info.bagsReal
+                            ? <span className="cx-metric-val cx-bags-real-val">{parseInt(info.bagsReal)}</span>
                             : <span className="cx-metric-val cx-bags-val">{g.totalPTM * 2}</span>
                           }
                           <span className="cx-metric-lbl">Bags</span>
                         </div>
+                      </div>
+
+                      <div className="cx-card-footer">
+                        <div className="cx-card-footer-left">
+                          {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
+                          {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
+                        </div>
+                        {(info.immatriculation || info.parking) && (
+                          <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                        )}
                       </div>
                     </button>
                   )

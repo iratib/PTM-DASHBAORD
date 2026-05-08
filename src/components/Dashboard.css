@@ -497,19 +497,97 @@
   border-left-color: var(--danger);
 }
 
-.cx-card-top {
+/* ── CARD HEADER (nouvelle structure) ── */
+.cx-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
-.cx-card-badges {
+.cx-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cx-std-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+}
+
+/* ── ROUTE LINE ── */
+.cx-route {
   display: flex;
   align-items: center;
   gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 2px;
 }
 
+/* ── DIVIDER ── */
+.cx-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+/* ── CARD FOOTER (immat + live) ── */
+.cx-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  min-height: 20px;
+}
+
+.cx-card-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cx-immat {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.cx-parking-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--sky-dim);
+  border: 1px solid rgba(14,165,233,0.2);
+  color: var(--sky);
+  letter-spacing: 0.5px;
+}
+
+.cx-live {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+.cx-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34,197,94,0.7);
+  flex-shrink: 0;
+}
+
+/* conservé pour les tableaux du tab Outbound */
 .cx-period-badge {
   padding: 2px 8px;
   border-radius: 20px;
@@ -553,25 +631,18 @@
 }
 
 .cx-vol {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
   line-height: 1;
-}
-
-.cx-std {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .cx-metrics {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  gap: 0;
+  justify-content: space-around;
 }
 
 .cx-metric {
