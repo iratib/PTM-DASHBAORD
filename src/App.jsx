@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X, Clock } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import Dashboard from './components/Dashboard'
 import excelService from './services/excelService'
 import googleSheetsService from './services/googleSheetsService'
 import './App.css'
+
+const AUTO_REFRESH_MS = 5 * 60 * 1000 // 5 minutes
 
 function App() {
   const [data, setData]             = useState([])
@@ -13,6 +15,11 @@ function App() {
   const [syncStatus, setSyncStatus] = useState('idle')
   const [syncError, setSyncError]   = useState('')
   const [pushStatus, setPushStatus] = useState('idle')
+  const [dataSource, setDataSource] = useState(null) // 'excel' | 'sheets'
+  const [nextRefreshIn, setNextRefreshIn] = useState(null) // secondes restantes
+  const [autoRefreshStatus, setAutoRefreshStatus] = useState('idle') // 'idle' | 'refreshing'
+  const autoRefreshRef = useRef(null)
+  const countdownRef   = useRef(null)
 
   // PWA install
   const [installPrompt, setInstallPrompt]   = useState(null)
@@ -51,14 +58,77 @@ function App() {
     }
   }
 
-  /* ── Data ── */
-  const handleDataLoaded = async (newData) => {
+  /* ── Helpers ── */
+  const applySheetData = (newData, source = 'sheets') => {
     setData(newData)
     const now = new Date().toISOString()
     setLastUpdate(now)
-    // sauvegarde pour refresh de page (session en cours uniquement)
-    sessionStorage.setItem('ptm_data',    JSON.stringify(newData))
-    sessionStorage.setItem('last_update', now)
+    setDataSource(source)
+    sessionStorage.setItem('ptm_data',        JSON.stringify(newData))
+    sessionStorage.setItem('last_update',     now)
+    sessionStorage.setItem('ptm_data_source', source)
+  }
+
+  const applyFlightInfo = (flightInfo) => {
+    if (Object.keys(flightInfo).length > 0) {
+      localStorage.setItem('ptm_flight_info', JSON.stringify(flightInfo))
+      window.dispatchEvent(new CustomEvent('ptm_flight_info_synced'))
+    }
+  }
+
+  /* ── Auto-refresh ── */
+  const startCountdown = useCallback(() => {
+    clearInterval(countdownRef.current)
+    setNextRefreshIn(AUTO_REFRESH_MS / 1000)
+    countdownRef.current = setInterval(() => {
+      setNextRefreshIn(prev => {
+        if (prev <= 1) return AUTO_REFRESH_MS / 1000
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
+
+  const doAutoRefresh = useCallback(async () => {
+    setAutoRefreshStatus('refreshing')
+    try {
+      const flightInfo = await googleSheetsService.syncFlightInfo()
+      applyFlightInfo(flightInfo)
+    } catch { /* silencieux */ }
+
+    // Rafraîchit aussi les données principales si elles viennent de Sheets
+    try {
+      const currentSource = dataSource
+      if (currentSource === 'sheets') {
+        const sheetData = await googleSheetsService.sync()
+        if (sheetData.length > 0) applySheetData(sheetData, 'sheets')
+      }
+    } catch { /* silencieux */ }
+
+    setAutoRefreshStatus('idle')
+    startCountdown()
+  }, [dataSource, startCountdown])
+
+  // Lance / relance le timer à chaque fois que hasData change ou que dataSource change
+  useEffect(() => {
+    clearInterval(autoRefreshRef.current)
+    clearInterval(countdownRef.current)
+
+    if (data.length > 0) {
+      startCountdown()
+      autoRefreshRef.current = setInterval(doAutoRefresh, AUTO_REFRESH_MS)
+    } else {
+      setNextRefreshIn(null)
+    }
+
+    return () => {
+      clearInterval(autoRefreshRef.current)
+      clearInterval(countdownRef.current)
+    }
+  }, [data.length > 0, dataSource]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Data ── */
+  const handleDataLoaded = async (newData) => {
+    applySheetData(newData, 'excel')
 
     setPushStatus('pushing')
     try {
@@ -75,10 +145,13 @@ function App() {
   const handleChangeFile = () => {
     setData([])
     setLastUpdate(null)
+    setDataSource(null)
     setSyncStatus('idle')
     setSyncError('')
+    setNextRefreshIn(null)
     sessionStorage.removeItem('ptm_data')
     sessionStorage.removeItem('last_update')
+    sessionStorage.removeItem('ptm_data_source')
   }
 
   const handleGoogleSync = async () => {
@@ -90,12 +163,12 @@ function App() {
         googleSheetsService.syncFlightInfo(),
       ])
       if (!sheetData.length) throw new Error('Le sheet est vide ou les colonnes ne correspondent pas')
-      await handleDataLoaded(sheetData)
-      // Google Sheets est la source de vérité — remplace le localStorage directement
-      if (Object.keys(flightInfo).length > 0) {
-        localStorage.setItem('ptm_flight_info', JSON.stringify(flightInfo))
-        window.dispatchEvent(new CustomEvent('ptm_flight_info_synced'))
-      }
+      applySheetData(sheetData, 'sheets')
+      applyFlightInfo(flightInfo)
+      // Redémarre le compteur après un sync manuel
+      startCountdown()
+      clearInterval(autoRefreshRef.current)
+      autoRefreshRef.current = setInterval(doAutoRefresh, AUTO_REFRESH_MS)
       setSyncStatus('success')
       setTimeout(() => setSyncStatus('idle'), 3000)
     } catch (err) {
@@ -108,12 +181,14 @@ function App() {
   useEffect(() => {
     const savedData       = sessionStorage.getItem('ptm_data')
     const savedLastUpdate = sessionStorage.getItem('last_update')
+    const savedSource     = sessionStorage.getItem('ptm_data_source')
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData)
         if (Array.isArray(parsed) && parsed.length > 0) {
           setData(parsed)
           if (savedLastUpdate) setLastUpdate(savedLastUpdate)
+          if (savedSource)     setDataSource(savedSource)
         }
       } catch { /* ignore */ }
     }
@@ -139,6 +214,18 @@ function App() {
                 {pushStatus === 'pushing' && <><RefreshCw size={13} className="spin" /> Envoi vers Google Sheets…</>}
                 {pushStatus === 'pushed'  && <><CheckCircle size={13} /> Google Sheets mis à jour</>}
                 {pushStatus === 'error'   && <><CloudOff size={13} /> Échec envoi</>}
+              </div>
+            )}
+
+            {nextRefreshIn !== null && (
+              <div className={`auto-refresh-indicator ${autoRefreshStatus === 'refreshing' ? 'refreshing' : ''}`}>
+                {autoRefreshStatus === 'refreshing'
+                  ? <><RefreshCw size={12} className="spin" /> Rafraîchissement…</>
+                  : <><Clock size={12} /> {nextRefreshIn >= 60
+                      ? `Auto ↻ ${Math.ceil(nextRefreshIn / 60)}min`
+                      : 'Auto ↻ <1min'
+                    }</>
+                }
               </div>
             )}
 
