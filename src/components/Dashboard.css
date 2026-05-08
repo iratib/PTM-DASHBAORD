@@ -810,6 +810,297 @@
 .cx-detail-table tbody tr:hover td     { background: rgba(255,255,255,0.02); }
 .cx-detail-table tbody tr.row-critique td { background: rgba(244,63,94,0.04); }
 
+/* ── VIEW TOGGLE (liste / cartes boarding-pass) ── */
+.cx-view-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cx-view-btn {
+  width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.cx-view-btn:hover  { background: rgba(255,255,255,0.08); color: var(--text); }
+.cx-view-btn.active { background: var(--primary-dim); color: var(--primary); }
+
+/* ── BOARDING PASS GRID ── */
+.bp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+  padding: 4px 0 8px;
+}
+
+.bp-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bp-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+}
+
+.bp-card--critique { border-color: rgba(244,63,94,0.4); }
+
+/* TOP — Inbound (bleu) */
+.bp-top {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  padding: 18px 20px 16px;
+  position: relative;
+  overflow: hidden;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.bp-top-left { position: relative; z-index: 1; }
+
+.bp-section-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.bp-vol {
+  display: block;
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.bp-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bp-badge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.bp-badge--park {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.4);
+}
+
+.bp-airport-bg {
+  position: absolute;
+  right: -6px;
+  top: 6px;
+  font-size: 72px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.1);
+  letter-spacing: -4px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.bp-city-time {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  text-align: right;
+  z-index: 1;
+}
+
+.bp-city {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+
+.bp-time {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  margin-top: 2px;
+}
+
+/* MIDDLE — Connexion */
+.bp-middle {
+  background: #0d1929;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.bp-timeline {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+
+.bp-tl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(59,130,246,0.7);
+}
+
+.bp-tl-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(59,130,246,0.6), rgba(124,58,237,0.6));
+  margin: 0 6px;
+}
+
+.bp-layover {
+  text-align: center;
+}
+
+.bp-layover-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.bp-layover-val {
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.bp-layover-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.bp-conn-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.bp-conn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bp-conn--ok       .bp-conn-dot { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.7); }
+.bp-conn--ok       { color: #22c55e; }
+.bp-conn--attention .bp-conn-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.6); }
+.bp-conn--attention { color: #f59e0b; }
+.bp-conn--critique  .bp-conn-dot { background: #f43f5e; box-shadow: 0 0 6px rgba(244,63,94,0.7); }
+.bp-conn--critique  { color: #f43f5e; }
+
+.bp-ptm-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgba(59,130,246,0.2);
+  padding: 2px 12px;
+  border-radius: 20px;
+}
+
+/* BOTTOM — Outbound (violet) */
+.bp-bottom {
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+  padding: 16px 20px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  overflow: hidden;
+  min-height: 110px;
+}
+
+.bp-bottom-left  { position: relative; flex: 1; }
+.bp-bottom-right { text-align: right; position: relative; z-index: 1; }
+
+.bp-airport-bg--bottom {
+  position: absolute;
+  left: -6px;
+  bottom: -12px;
+  font-size: 72px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.1);
+  letter-spacing: -4px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.bp-city-time--bottom {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  text-align: left;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .bp-grid { grid-template-columns: 1fr; }
+  .bp-vol  { font-size: 24px; }
+  .bp-layover-val { font-size: 28px; }
+  .cx-view-toggle { margin-left: 0; }
+}
+
 /* ── CARD INFO TAGS (immat / parking sur cartes outbound) ── */
 .cx-info-tags {
   display: flex;

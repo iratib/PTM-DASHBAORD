@@ -5,7 +5,8 @@ import {
 } from 'recharts'
 import {
   Plane, Clock, AlertTriangle, Users, ArrowUpRight,
-  Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding, MapPin
+  Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding, MapPin,
+  LayoutList, LayoutGrid
 } from 'lucide-react'
 import excelService from '../services/excelService'
 import { googleSheetsService } from '../services/googleSheetsService'
@@ -96,6 +97,41 @@ const fmtRoute = (segment) => {
   return `${segment.slice(0, idx)} → ${segment.slice(idx + 1)}`
 }
 
+// Convertit des minutes en "HH:MM"
+const fmtConnectionTime = (minutes) => {
+  if (!minutes && minutes !== 0) return '--:--'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+}
+
+const originOf = (seg) => seg ? seg.split('-')[0]            : ''
+const destOf   = (seg) => seg ? seg.split('-').slice(-1)[0]  : ''
+
+const AIRPORT_CITY = {
+  CDG:'Paris', ORY:'Paris Orly', LHR:'Londres', LGW:'Londres Gatwick',
+  AMS:'Amsterdam', BRU:'Bruxelles', FRA:'Francfort', MUC:'Munich',
+  FCO:'Rome', MXP:'Milan', VCE:'Venise', BLQ:'Bologne',
+  BCN:'Barcelone', MAD:'Madrid', SVQ:'Séville', BIO:'Bilbao', VLC:'Valence',
+  LIS:'Lisbonne', OPO:'Porto',
+  GVA:'Genève', ZRH:'Zurich', VIE:'Vienne',
+  MRS:'Marseille', LYS:'Lyon', NCE:'Nice', TLS:'Toulouse', BOD:'Bordeaux',
+  NTE:'Nantes', MPL:'Montpellier', RNS:'Rennes',
+  STR:'Stuttgart', DUS:'Düsseldorf', HAM:'Hambourg', BER:'Berlin',
+  CPH:'Copenhague', ARN:'Stockholm', HEL:'Helsinki', WAW:'Varsovie',
+  IST:'Istanbul', DXB:'Dubaï', CAI:'Le Caire', BEY:'Beyrouth',
+  JFK:'New York', YUL:'Montréal', YYZ:'Toronto',
+  GRU:'São Paulo', EZE:'Buenos Aires',
+  CMN:'Casablanca', RAK:'Marrakech', AGA:'Agadir', TNG:'Tanger',
+  FEZ:'Fès', RBA:'Rabat', OUD:'Oujda', NDR:'Nador',
+  ERH:'Errachidia', OZZ:'Ouarzazate', TTU:'Tétouan', AHU:'Al Hoceima',
+  EUN:'Laayoune', VIL:'Dakhla', GLN:'Goulimime',
+  TUN:'Tunis', ALG:'Alger', DSS:'Dakar', BKO:'Bamako',
+  NBJ:'Nouakchott', DLA:'Douala', LBV:'Libreville',
+  ABV:'Abuja', LOS:'Lagos', ACC:'Accra', NBO:'Nairobi', SID:'Sal',
+}
+const airportCity = (code) => AIRPORT_CITY[code] || code
+
 const DIST_COLORS = {
   '0-30 min':   '#F43F5E',
   '30-60 min':  '#F59E0B',
@@ -112,6 +148,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedOutbound, setSelectedOutbound] = useState(null)
   const [selectedInbound, setSelectedInbound]   = useState(null)
+  const [detailView, setDetailView] = useState('table') // 'table' | 'cards'
   const [periodFilter, setPeriodFilter] = useState('all') // 'all' | 'day' | 'night'
   const [periodFilterIn, setPeriodFilterIn] = useState('all') // pour onglet arrivées
   const [periodFilterAp, setPeriodFilterAp] = useState('all') // pour onglet appareils
@@ -552,6 +589,8 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
           const sorted = [...g.connections].sort(
             (a, b) => (a.connectionTime ?? 9999) - (b.connectionTime ?? 9999)
           )
+          const outInfo = flightInfo[g.volOutbound] || {}
+          const destCode = destOf(g.segmentOutbound)
           return (
             <div className="cx-detail">
               <div className="cx-detail-header">
@@ -560,73 +599,118 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                   Tous les vols
                 </button>
                 <div className="cx-detail-title">
-                  <div className="cx-flight-icon large">
-                    <Plane size={20} />
-                  </div>
+                  <div className="cx-flight-icon large"><Plane size={20} /></div>
                   <div>
                     <h2>{g.volOutbound}</h2>
                     <span>Départ {fmtDate(g.stdOutbound)}</span>
                   </div>
                 </div>
                 <div className="cx-detail-kpis">
-                  <div className="cx-dkpi">
-                    <strong>{g.connections.length}</strong>
-                    <label>Vols inbound</label>
-                  </div>
-                  <div className="cx-dkpi cx-dkpi--ptm">
-                    <strong>{g.totalPTM}</strong>
-                    <label>Total PTM</label>
-                  </div>
-                  {g.critiques > 0 && (
-                    <div className="cx-dkpi cx-dkpi--danger">
-                      <strong>{g.critiques}</strong>
-                      <label>Critiques</label>
-                    </div>
-                  )}
+                  <div className="cx-dkpi"><strong>{g.connections.length}</strong><label>Vols inbound</label></div>
+                  <div className="cx-dkpi cx-dkpi--ptm"><strong>{g.totalPTM}</strong><label>Total PTM</label></div>
+                  {g.critiques > 0 && <div className="cx-dkpi cx-dkpi--danger"><strong>{g.critiques}</strong><label>Critiques</label></div>}
+                </div>
+                <div className="cx-view-toggle">
+                  <button className={`cx-view-btn ${detailView === 'table' ? 'active' : ''}`} onClick={() => setDetailView('table')} title="Vue liste"><LayoutList size={15} /></button>
+                  <button className={`cx-view-btn ${detailView === 'cards' ? 'active' : ''}`} onClick={() => setDetailView('cards')} title="Vue cartes"><LayoutGrid size={15} /></button>
                 </div>
               </div>
 
-              <div className="cx-detail-table-wrap">
-                <table className="cx-detail-table">
-                  <thead>
-                    <tr>
-                      <th>Vol Inbound</th>
-                      <th>STA estimée</th>
-                      <th>Immat.</th>
-                      <th>Parking</th>
-                      <th>Tps connexion</th>
-                      <th>PTM</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sorted.map((row, i) => {
-                      const inInfo = flightInfo[row['Vol Inbound']] || {}
-                      return (
-                        <tr key={i} className={`row-${row.status || 'unknown'}`}>
-                          <td><span className="flight-tag">{row['Vol Inbound']}</span></td>
-                          <td className="date-cell">{fmtDate(row['STA Inbound'])}</td>
-                          <td className="ap-cell">{inInfo.immatriculation || <span className="ap-empty">—</span>}</td>
-                          <td className="ap-cell">{inInfo.parking || <span className="ap-empty">—</span>}</td>
-                          <td>
-                            {row['Temps de connexion'] ? (
-                              <span className={`time-badge status-${row.status}`}>
-                                {row['Temps de connexion']}
-                              </span>
-                            ) : '-'}
-                          </td>
-                          <td className="num-cell">{row.ptm}</td>
-                          <td>
-                            {row.status === 'critique'  && <span className="status-pill pill-critique">Critique</span>}
-                            {row.status === 'attention' && <span className="status-pill pill-attention">Attention</span>}
-                            {row.status === 'ok'        && <span className="status-pill pill-ok">OK</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {detailView === 'table' ? (
+                <div className="cx-detail-table-wrap">
+                  <table className="cx-detail-table">
+                    <thead><tr><th>Vol Inbound</th><th>STA estimée</th><th>Immat.</th><th>Parking</th><th>Tps connexion</th><th>PTM</th><th>Statut</th></tr></thead>
+                    <tbody>
+                      {sorted.map((row, i) => {
+                        const inInfo = flightInfo[row['Vol Inbound']] || {}
+                        return (
+                          <tr key={i} className={`row-${row.status || 'unknown'}`}>
+                            <td><span className="flight-tag">{row['Vol Inbound']}</span></td>
+                            <td className="date-cell">{fmtDate(row['STA Inbound'])}</td>
+                            <td className="ap-cell">{inInfo.immatriculation || <span className="ap-empty">—</span>}</td>
+                            <td className="ap-cell">{inInfo.parking || <span className="ap-empty">—</span>}</td>
+                            <td>{row['Temps de connexion'] ? <span className={`time-badge status-${row.status}`}>{row['Temps de connexion']}</span> : '-'}</td>
+                            <td className="num-cell">{row.ptm}</td>
+                            <td>
+                              {row.status === 'critique'  && <span className="status-pill pill-critique">Critique</span>}
+                              {row.status === 'attention' && <span className="status-pill pill-attention">Attention</span>}
+                              {row.status === 'ok'        && <span className="status-pill pill-ok">OK</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bp-grid">
+                  {sorted.map((row, i) => {
+                    const inInfo     = flightInfo[row['Vol Inbound']] || {}
+                    const originCode = originOf(row['Segment Inbound'] || '')
+                    return (
+                      <div key={i} className={`bp-card bp-card--${row.status}`}>
+                        <div className="bp-top">
+                          <div className="bp-top-left">
+                            <span className="bp-section-label">VOL INBOUND</span>
+                            <span className="bp-vol">{row['Vol Inbound']}</span>
+                            <div className="bp-badges">
+                              {inInfo.immatriculation && <span className="bp-badge">{inInfo.immatriculation}</span>}
+                              {inInfo.parking && <span className="bp-badge bp-badge--park">{inInfo.parking}</span>}
+                            </div>
+                          </div>
+                          {originCode && <>
+                            <span className="bp-airport-bg">{originCode}</span>
+                            <div className="bp-city-time">
+                              <span className="bp-city">{airportCity(originCode)}</span>
+                              <span className="bp-time">{fmtTime(row['STA Inbound'])}</span>
+                            </div>
+                          </>}
+                        </div>
+
+                        <div className="bp-middle">
+                          <div className="bp-timeline">
+                            <div className="bp-tl-dot" />
+                            <div className="bp-tl-line" />
+                            <div className="bp-tl-dot" />
+                          </div>
+                          <div className="bp-layover">
+                            <span className="bp-layover-label">TEMPS DE CONNEXION</span>
+                            <span className="bp-layover-val">
+                              {fmtConnectionTime(row.connectionTime)}
+                              <span className="bp-layover-unit"> HRS</span>
+                            </span>
+                          </div>
+                          <div className={`bp-conn-status bp-conn--${row.status}`}>
+                            <span className="bp-conn-dot" />
+                            {row.status === 'critique' ? 'CONNEXION À RISQUE' : row.status === 'attention' ? 'CONNEXION SERRÉE' : 'CONNEXION OK'}
+                          </div>
+                          <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                        </div>
+
+                        <div className="bp-bottom">
+                          <div className="bp-bottom-left">
+                            {destCode && <>
+                              <span className="bp-airport-bg bp-airport-bg--bottom">{destCode}</span>
+                              <div className="bp-city-time bp-city-time--bottom">
+                                <span className="bp-city">{airportCity(destCode)}</span>
+                                <span className="bp-time">{fmtTime(g.stdOutbound)}</span>
+                              </div>
+                            </>}
+                          </div>
+                          <div className="bp-bottom-right">
+                            <div className="bp-badges">
+                              {outInfo.immatriculation && <span className="bp-badge">{outInfo.immatriculation}</span>}
+                              {outInfo.parking && <span className="bp-badge bp-badge--park">{outInfo.parking}</span>}
+                            </div>
+                            <span className="bp-section-label">VOL OUTBOUND</span>
+                            <span className="bp-vol">{g.volOutbound}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })()}
@@ -758,6 +842,8 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
           const sorted = [...g.connections].sort(
             (a, b) => (a.connectionTime ?? 9999) - (b.connectionTime ?? 9999)
           )
+          const inInfo     = flightInfo[g.volInbound] || {}
+          const originCode = originOf(g.segmentInbound)
           return (
             <div className="cx-detail">
               <div className="cx-detail-header">
@@ -775,64 +861,111 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                   </div>
                 </div>
                 <div className="cx-detail-kpis">
-                  <div className="cx-dkpi">
-                    <strong>{g.connections.length}</strong>
-                    <label>Vols outbound</label>
-                  </div>
-                  <div className="cx-dkpi cx-dkpi--ptm">
-                    <strong>{g.totalPTM}</strong>
-                    <label>Total PTM</label>
-                  </div>
-                  {g.critiques > 0 && (
-                    <div className="cx-dkpi cx-dkpi--danger">
-                      <strong>{g.critiques}</strong>
-                      <label>Critiques</label>
-                    </div>
-                  )}
+                  <div className="cx-dkpi"><strong>{g.connections.length}</strong><label>Vols outbound</label></div>
+                  <div className="cx-dkpi cx-dkpi--ptm"><strong>{g.totalPTM}</strong><label>Total PTM</label></div>
+                  {g.critiques > 0 && <div className="cx-dkpi cx-dkpi--danger"><strong>{g.critiques}</strong><label>Critiques</label></div>}
+                </div>
+                <div className="cx-view-toggle">
+                  <button className={`cx-view-btn ${detailView === 'table' ? 'active' : ''}`} onClick={() => setDetailView('table')} title="Vue liste"><LayoutList size={15} /></button>
+                  <button className={`cx-view-btn ${detailView === 'cards' ? 'active' : ''}`} onClick={() => setDetailView('cards')} title="Vue cartes"><LayoutGrid size={15} /></button>
                 </div>
               </div>
 
-              <div className="cx-detail-table-wrap">
-                <table className="cx-detail-table">
-                  <thead>
-                    <tr>
-                      <th>Vol Outbound</th>
-                      <th>STD estimée</th>
-                      <th>Immat.</th>
-                      <th>Parking</th>
-                      <th>Tps connexion</th>
-                      <th>PTM</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sorted.map((row, i) => {
-                      const outInfo = flightInfo[row['Vol Outbound']] || {}
-                      return (
-                        <tr key={i} className={`row-${row.status || 'unknown'}`}>
-                          <td><span className="flight-tag outbound">{row['Vol Outbound']}</span></td>
-                          <td className="date-cell">{fmtDate(row['STD Outbound'])}</td>
-                          <td className="ap-cell">{outInfo.immatriculation || <span className="ap-empty">—</span>}</td>
-                          <td className="ap-cell">{outInfo.parking || <span className="ap-empty">—</span>}</td>
-                          <td>
-                            {row['Temps de connexion'] ? (
-                              <span className={`time-badge status-${row.status}`}>
-                                {row['Temps de connexion']}
-                              </span>
-                            ) : '-'}
-                          </td>
-                          <td className="num-cell">{row.ptm}</td>
-                          <td>
-                            {row.status === 'critique'  && <span className="status-pill pill-critique">Critique</span>}
-                            {row.status === 'attention' && <span className="status-pill pill-attention">Attention</span>}
-                            {row.status === 'ok'        && <span className="status-pill pill-ok">OK</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {detailView === 'table' ? (
+                <div className="cx-detail-table-wrap">
+                  <table className="cx-detail-table">
+                    <thead><tr><th>Vol Outbound</th><th>STD estimée</th><th>Immat.</th><th>Parking</th><th>Tps connexion</th><th>PTM</th><th>Statut</th></tr></thead>
+                    <tbody>
+                      {sorted.map((row, i) => {
+                        const outInfo = flightInfo[row['Vol Outbound']] || {}
+                        return (
+                          <tr key={i} className={`row-${row.status || 'unknown'}`}>
+                            <td><span className="flight-tag outbound">{row['Vol Outbound']}</span></td>
+                            <td className="date-cell">{fmtDate(row['STD Outbound'])}</td>
+                            <td className="ap-cell">{outInfo.immatriculation || <span className="ap-empty">—</span>}</td>
+                            <td className="ap-cell">{outInfo.parking || <span className="ap-empty">—</span>}</td>
+                            <td>{row['Temps de connexion'] ? <span className={`time-badge status-${row.status}`}>{row['Temps de connexion']}</span> : '-'}</td>
+                            <td className="num-cell">{row.ptm}</td>
+                            <td>
+                              {row.status === 'critique'  && <span className="status-pill pill-critique">Critique</span>}
+                              {row.status === 'attention' && <span className="status-pill pill-attention">Attention</span>}
+                              {row.status === 'ok'        && <span className="status-pill pill-ok">OK</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bp-grid">
+                  {sorted.map((row, i) => {
+                    const outInfo  = flightInfo[row['Vol Outbound']] || {}
+                    const destCode = destOf(row['Segment Outbound'] || '')
+                    return (
+                      <div key={i} className={`bp-card bp-card--${row.status}`}>
+                        <div className="bp-top">
+                          <div className="bp-top-left">
+                            <span className="bp-section-label">VOL INBOUND</span>
+                            <span className="bp-vol">{g.volInbound}</span>
+                            <div className="bp-badges">
+                              {inInfo.immatriculation && <span className="bp-badge">{inInfo.immatriculation}</span>}
+                              {inInfo.parking && <span className="bp-badge bp-badge--park">{inInfo.parking}</span>}
+                            </div>
+                          </div>
+                          {originCode && <>
+                            <span className="bp-airport-bg">{originCode}</span>
+                            <div className="bp-city-time">
+                              <span className="bp-city">{airportCity(originCode)}</span>
+                              <span className="bp-time">{fmtTime(g.staInbound)}</span>
+                            </div>
+                          </>}
+                        </div>
+
+                        <div className="bp-middle">
+                          <div className="bp-timeline">
+                            <div className="bp-tl-dot" />
+                            <div className="bp-tl-line" />
+                            <div className="bp-tl-dot" />
+                          </div>
+                          <div className="bp-layover">
+                            <span className="bp-layover-label">TEMPS DE CONNEXION</span>
+                            <span className="bp-layover-val">
+                              {fmtConnectionTime(row.connectionTime)}
+                              <span className="bp-layover-unit"> HRS</span>
+                            </span>
+                          </div>
+                          <div className={`bp-conn-status bp-conn--${row.status}`}>
+                            <span className="bp-conn-dot" />
+                            {row.status === 'critique' ? 'CONNEXION À RISQUE' : row.status === 'attention' ? 'CONNEXION SERRÉE' : 'CONNEXION OK'}
+                          </div>
+                          <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                        </div>
+
+                        <div className="bp-bottom">
+                          <div className="bp-bottom-left">
+                            {destCode && <>
+                              <span className="bp-airport-bg bp-airport-bg--bottom">{destCode}</span>
+                              <div className="bp-city-time bp-city-time--bottom">
+                                <span className="bp-city">{airportCity(destCode)}</span>
+                                <span className="bp-time">{fmtTime(row['STD Outbound'])}</span>
+                              </div>
+                            </>}
+                          </div>
+                          <div className="bp-bottom-right">
+                            <div className="bp-badges">
+                              {outInfo.immatriculation && <span className="bp-badge">{outInfo.immatriculation}</span>}
+                              {outInfo.parking && <span className="bp-badge bp-badge--park">{outInfo.parking}</span>}
+                            </div>
+                            <span className="bp-section-label">VOL OUTBOUND</span>
+                            <span className="bp-vol">{row['Vol Outbound']}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })()}
