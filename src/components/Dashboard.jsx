@@ -808,17 +808,25 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                       <div className="cx-footer-line1">
                         <Clock size={12} style={{ color: pt.color, flexShrink: 0 }} />
                         <span className="cx-countdown" style={{ color: pt.color }}>
-                          {fmtCountdown(pt.totalSeconds)}
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0
+                            ? fmtCountdown(pt.totalSeconds).replace('-', '+')
+                            : fmtCountdown(pt.totalSeconds)}
                         </span>
-                        <span className="cx-countdown-label">Avant départ</span>
+                        <span className="cx-countdown-label">
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0 ? 'ETD' : 'Avant départ'}
+                        </span>
                       </div>
 
-                      {/* Footer ligne 2 : immat + parking */}
-                      {(info.immatriculation || info.parking) && (
+                      {/* Footer ligne 2 : immat + parking à gauche, Live à droite */}
+                      {(info.immatriculation || info.parking || (pt.totalSeconds !== null && pt.totalSeconds < 0)) && (
                         <div className="cx-footer-line2">
-                          {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
-                          {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
-                          <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                          <div className="cx-footer-line2-left">
+                            {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
+                            {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
+                          </div>
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0 && (
+                            <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                          )}
                         </div>
                       )}
 
@@ -1091,17 +1099,25 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                       <div className="cx-footer-line1">
                         <Clock size={12} style={{ color: pt.color, flexShrink: 0 }} />
                         <span className="cx-countdown" style={{ color: pt.color }}>
-                          {fmtCountdown(pt.totalSeconds)}
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0
+                            ? fmtCountdown(pt.totalSeconds).replace('-', '+')
+                            : fmtCountdown(pt.totalSeconds)}
                         </span>
-                        <span className="cx-countdown-label">Avant arrivée</span>
+                        <span className="cx-countdown-label">
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0 ? 'ETA' : 'Avant arrivée'}
+                        </span>
                       </div>
 
-                      {/* Footer ligne 2 : immat + parking */}
-                      {(info.immatriculation || info.parking) && (
+                      {/* Footer ligne 2 : immat + parking à gauche, Live à droite */}
+                      {(info.immatriculation || info.parking || (pt.totalSeconds !== null && pt.totalSeconds < 0)) && (
                         <div className="cx-footer-line2">
-                          {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
-                          {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
-                          <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                          <div className="cx-footer-line2-left">
+                            {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
+                            {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
+                          </div>
+                          {pt.totalSeconds !== null && pt.totalSeconds < 0 && (
+                            <div className="cx-live"><span className="cx-live-dot" />Live</div>
+                          )}
                         </div>
                       )}
 

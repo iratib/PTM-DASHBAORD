@@ -554,6 +554,13 @@
 .cx-footer-line2 {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cx-footer-line2-left {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
