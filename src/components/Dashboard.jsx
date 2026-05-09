@@ -148,7 +148,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedOutbound, setSelectedOutbound] = useState(null)
   const [selectedInbound, setSelectedInbound]   = useState(null)
-  const [detailView, setDetailView]       = useState('table')  // 'table' | 'cards'
+  const [detailView, setDetailView]       = useState('cards')  // 'table' | 'cards'
   const [activeStatCard, setActiveStatCard] = useState(null)    // null | 'outbound' | 'inbound' | 'ptm'
   const [periodFilter, setPeriodFilter] = useState('all') // 'all' | 'day' | 'night'
   const [periodFilterIn, setPeriodFilterIn] = useState('all') // pour onglet arrivées
@@ -267,6 +267,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       inboundCount:   new Set(filteredData.map(d => d['Vol Inbound']).filter(Boolean)).size,
       outboundCount:  new Set(filteredData.map(d => d['Vol Outbound'])).size,
       totalPTM:       filteredData.reduce((s, d) => s + d.ptm, 0),
+      shortConnPTM:   filteredData.filter(d => d.status === 'critique').reduce((s, d) => s + d.ptm, 0),
       avgTime:        times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 0,
       critiques:      filteredData.filter(d => d.status === 'critique').length,
     }
@@ -396,7 +397,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       <div className="stats-grid">
         <StatCard icon={<PlaneTakeoff size={18}/>} title="Vols Outbound" value={stats.outboundCount} color="blue"   onClick={() => setActiveStatCard('outbound')} />
         <StatCard icon={<PlaneLanding size={18}/>} title="Vols Inbound"  value={stats.inboundCount}  color="sky"    onClick={() => setActiveStatCard('inbound')} />
-        <StatCard icon={<Users size={18}/>}         title="Total PTM"     value={stats.totalPTM}      color="purple" onClick={() => setActiveStatCard('ptm')} />
+        <StatCard icon={<Users size={18}/>}         title="Short connexion PTM" value={stats.shortConnPTM} color="purple" onClick={() => setActiveStatCard('ptm')} />
         <StatCard icon={<Clock size={18}/>}          title="Temps moyen"   value={`${stats.avgTime} min`} color="success" />
         <StatCard icon={<AlertTriangle size={18}/>}  title="Critiques"     value={stats.critiques}     color="danger" subtitle="< 30 min" />
       </div>
@@ -413,7 +414,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
           .filter(g => g.volInbound)
           .sort((a, b) => b.totalPTM - a.totalPTM)
 
-        const titles = { outbound: 'Vols Outbound', inbound: 'Vols Inbound', ptm: 'Détail PTM par vol' }
+        const titles = { outbound: 'Vols Outbound', inbound: 'Vols Inbound', ptm: 'Short connexion PTM par vol' }
 
         return (
           <div className="stat-modal-backdrop" onClick={close}>
@@ -434,20 +435,30 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                         <th>Destination</th>
                         <th>Inbound</th>
                         <th>PTM</th>
+                        <th>Bags</th>
                         <th>Critiques</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {outboundList.map(g => (
-                        <tr key={g.volOutbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
-                          <td><span className="flight-tag">{g.volOutbound}</span></td>
-                          <td className="date-cell">{fmtTime(g.stdOutbound)}</td>
-                          <td className="smt-route">{g.segmentOutbound ? fmtRoute(g.segmentOutbound) : '—'}</td>
-                          <td className="num-cell">{g.connections.length}</td>
-                          <td className="num-cell smt-ptm">{g.totalPTM}</td>
-                          <td className="num-cell">{g.critiques > 0 ? <span className="status-pill pill-critique">{g.critiques}</span> : <span className="smt-zero">—</span>}</td>
-                        </tr>
-                      ))}
+                      {outboundList.map(g => {
+                        const info = flightInfo[g.volOutbound] || {}
+                        const bagsReal = info.bagsReal ? parseInt(info.bagsReal) : null
+                        return (
+                          <tr key={g.volOutbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
+                            <td><span className="flight-tag">{g.volOutbound}</span></td>
+                            <td className="date-cell">{fmtTime(g.stdOutbound)}</td>
+                            <td className="smt-route">{g.segmentOutbound ? fmtRoute(g.segmentOutbound) : '—'}</td>
+                            <td className="num-cell">{g.connections.length}</td>
+                            <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                            <td className="num-cell">
+                              {bagsReal != null
+                                ? <span className="cx-bags-real-val">{bagsReal}</span>
+                                : <span className="cx-bags-val">{g.totalPTM * 2}</span>}
+                            </td>
+                            <td className="num-cell">{g.critiques > 0 ? <span className="status-pill pill-critique">{g.critiques}</span> : <span className="smt-zero">—</span>}</td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -462,23 +473,33 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                         <th>Origine</th>
                         <th>Connexions</th>
                         <th>PTM</th>
+                        <th>Bags</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {inboundList.map(g => (
-                        <tr key={g.volInbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
-                          <td><span className="flight-tag">{g.volInbound}</span></td>
-                          <td className="date-cell">{fmtTime(g.staInbound)}</td>
-                          <td className="smt-route">{g.segmentInbound ? fmtRoute(g.segmentInbound) : '—'}</td>
-                          <td className="num-cell">{g.connections.length}</td>
-                          <td className="num-cell smt-ptm">{g.totalPTM}</td>
-                        </tr>
-                      ))}
+                      {inboundList.map(g => {
+                        const info = flightInfo[g.volInbound] || {}
+                        const bagsReal = info.bagsReal ? parseInt(info.bagsReal) : null
+                        return (
+                          <tr key={g.volInbound} className={g.critiques > 0 ? 'smt-alert' : ''}>
+                            <td><span className="flight-tag">{g.volInbound}</span></td>
+                            <td className="date-cell">{fmtTime(g.staInbound)}</td>
+                            <td className="smt-route">{g.segmentInbound ? fmtRoute(g.segmentInbound) : '—'}</td>
+                            <td className="num-cell">{g.connections.length}</td>
+                            <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                            <td className="num-cell">
+                              {bagsReal != null
+                                ? <span className="cx-bags-real-val">{bagsReal}</span>
+                                : <span className="cx-bags-val">{g.totalPTM * 2}</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 )}
 
-                {/* ── Total PTM ── */}
+                {/* ── Short connexion PTM ── */}
                 {activeStatCard === 'ptm' && (() => {
                   const total = outboundList.reduce((s, g) => s + g.totalPTM, 0)
                   return (
@@ -489,18 +510,26 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                           <th>Départ</th>
                           <th>Destination</th>
                           <th>PTM</th>
+                          <th>Bags</th>
                           <th>% du total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {outboundList.map(g => {
                           const pct = total > 0 ? Math.round((g.totalPTM / total) * 100) : 0
+                          const info = flightInfo[g.volOutbound] || {}
+                          const bagsReal = info.bagsReal ? parseInt(info.bagsReal) : null
                           return (
                             <tr key={g.volOutbound}>
                               <td><span className="flight-tag">{g.volOutbound}</span></td>
                               <td className="date-cell">{fmtTime(g.stdOutbound)}</td>
                               <td className="smt-route">{g.segmentOutbound ? fmtRoute(g.segmentOutbound) : '—'}</td>
                               <td className="num-cell smt-ptm">{g.totalPTM}</td>
+                              <td className="num-cell">
+                                {bagsReal != null
+                                  ? <span className="cx-bags-real-val">{bagsReal}</span>
+                                  : <span className="cx-bags-val">{g.totalPTM * 2}</span>}
+                              </td>
                               <td>
                                 <div className="smt-bar-wrap">
                                   <div className="smt-bar" style={{ width: `${pct}%` }} />
@@ -804,7 +833,10 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                             <span className="bp-conn-dot" />
                             {row.status === 'critique' ? 'CONNEXION À RISQUE' : row.status === 'attention' ? 'CONNEXION SERRÉE' : 'CONNEXION OK'}
                           </div>
-                          <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                          <div className="bp-pax-row">
+                            <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                            <span className="bp-bags-badge">{row.ptm * 2} Bags</span>
+                          </div>
                         </div>
 
                         <div className="bp-bottom">
@@ -1059,7 +1091,10 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                             <span className="bp-conn-dot" />
                             {row.status === 'critique' ? 'CONNEXION À RISQUE' : row.status === 'attention' ? 'CONNEXION SERRÉE' : 'CONNEXION OK'}
                           </div>
-                          <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                          <div className="bp-pax-row">
+                            <span className="bp-ptm-badge">{row.ptm} PTM</span>
+                            <span className="bp-bags-badge">{row.ptm * 2} Bags</span>
+                          </div>
                         </div>
 
                         <div className="bp-bottom">

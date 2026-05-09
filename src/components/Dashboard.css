@@ -1170,12 +1170,28 @@
 .bp-conn--critique  .bp-conn-dot { background: #f43f5e; box-shadow: 0 0 6px rgba(244,63,94,0.7); }
 .bp-conn--critique  { color: #f43f5e; }
 
+.bp-pax-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .bp-ptm-badge {
   font-size: 11px;
   font-weight: 600;
   color: var(--primary);
   background: var(--primary-dim);
   border: 1px solid rgba(59,130,246,0.2);
+  padding: 2px 12px;
+  border-radius: 20px;
+}
+
+.bp-bags-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-dim);
+  border: 1px solid rgba(245,158,11,0.2);
   padding: 2px 12px;
   border-radius: 20px;
 }
