@@ -114,8 +114,11 @@ function App() {
     try {
       const currentSource = dataSource
       if (currentSource === 'sheets') {
-        const sheetData = await googleSheetsService.sync()
-        if (sheetData.length > 0) applySheetData(sheetData, 'sheets')
+        const [sheetData, feuil3Data] = await Promise.all([
+          googleSheetsService.sync(),
+          googleSheetsService.syncFeuil3(),
+        ])
+        if (sheetData.length > 0) applySheetData(sheetData, 'sheets', feuil3Data)
       }
     } catch { /* silencieux */ }
 
@@ -148,6 +151,7 @@ function App() {
     setPushStatus('pushing')
     try {
       await googleSheetsService.push(newData)
+      if (newFeuil3) googleSheetsService.pushFeuil3(newFeuil3).catch(() => {})
       setPushStatus('pushed')
       setTimeout(() => setPushStatus('idle'), 4000)
     } catch (err) {
@@ -175,12 +179,13 @@ function App() {
     setSyncStatus('loading')
     setSyncError('')
     try {
-      const [sheetData, flightInfo] = await Promise.all([
+      const [sheetData, flightInfo, feuil3Data] = await Promise.all([
         googleSheetsService.sync(),
         googleSheetsService.syncFlightInfo(),
+        googleSheetsService.syncFeuil3(),
       ])
       if (!sheetData.length) throw new Error('Le sheet est vide ou les colonnes ne correspondent pas')
-      applySheetData(sheetData, 'sheets')
+      applySheetData(sheetData, 'sheets', feuil3Data)
       applyFlightInfo(flightInfo)
       // Redémarre le compteur après un sync manuel
       startCountdown()

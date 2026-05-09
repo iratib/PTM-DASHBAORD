@@ -70,6 +70,47 @@ export const googleSheetsService = {
     })
   },
 
+  async pushFeuil3(feuil3) {
+    if (!SCRIPT_URL || !feuil3) return
+    const rows = [
+      ...(feuil3.domInt || []).map(r => ({ type: 'DOM-INT', ...r })),
+      ...(feuil3.intDom || []).map(r => ({ type: 'INT-DOM', ...r })),
+      ...(feuil3.intInt || []).map(r => ({ type: 'INT-INT', ...r })),
+    ]
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'feuil3', data: rows }),
+    })
+  },
+
+  async syncFeuil3() {
+    if (!API_KEY || !SHEET_ID) return null
+    const range = encodeURIComponent('FluxPTM!A1:F5000')
+    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}&t=${Date.now()}`
+    try {
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const json = await response.json()
+      if (!json.values || json.values.length < 2) return null
+      const headers = json.values[0].map(h => String(h).trim())
+      const all = json.values.slice(1).map(row => {
+        const obj = {}
+        headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]).trim() : '' })
+        obj.ptm = parseInt(obj.ptm) || 0
+        return obj
+      }).filter(r => r.vol && r.ptm > 0)
+      return {
+        domInt: all.filter(r => r.type === 'DOM-INT').map(({ type, ...rest }) => rest),
+        intDom: all.filter(r => r.type === 'INT-DOM').map(({ type, ...rest }) => rest),
+        intInt: all.filter(r => r.type === 'INT-INT').map(({ type, ...rest }) => rest),
+      }
+    } catch {
+      return null
+    }
+  },
+
   async pushFlightInfo(flightInfo) {
     if (!SCRIPT_URL) return
     const rows = Object.entries(flightInfo).map(([vol, info]) => ({
