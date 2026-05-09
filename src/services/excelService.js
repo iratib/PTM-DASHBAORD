@@ -1,6 +1,48 @@
 import * as XLSX from 'xlsx'
 
 export const excelService = {
+  /* ── Parse Feuil3 : 3 tableaux côte à côte (DOM-INT | INT-DOM | INT-INT) ── */
+  _parseFeuil3(workbook) {
+    const sheetName = workbook.SheetNames.find(n => /feuil3/i.test(n))
+      || workbook.SheetNames[2]
+    if (!sheetName || !workbook.Sheets[sheetName]) return null
+
+    const sheet = workbook.Sheets[sheetName]
+    const rawRows = XLSX.utils.sheet_to_json(sheet, {
+      header: 1, raw: false, defval: '', dateNF: 'DD/MM/YYYY HH:MM:SS',
+    })
+    if (rawRows.length < 2) return null
+
+    // Trouve la ligne contenant "Vol Inbound" au moins 2 fois
+    const headerRowIdx = rawRows.findIndex(row =>
+      row.filter(c => String(c).trim() === 'Vol Inbound').length >= 2
+    )
+    if (headerRowIdx === -1) return null
+
+    const headerRow = rawRows[headerRowIdx]
+    const starts = []
+    headerRow.forEach((cell, i) => {
+      if (String(cell).trim() === 'Vol Inbound') starts.push(i)
+    })
+    if (starts.length < 3) return null
+
+    const dataRows = rawRows.slice(headerRowIdx + 1)
+    const parseGroup = (startCol) => dataRows
+      .map(row => ({
+        vol:       String(row[startCol]     || '').trim(),
+        sta:       String(row[startCol + 1] || '').trim(),
+        heurePres: String(row[startCol + 2] || '').trim(),
+        ptm:       parseInt(row[startCol + 3]) || 0,
+      }))
+      .filter(r => r.vol && r.ptm > 0)
+
+    return {
+      domInt: parseGroup(starts[0]),
+      intDom: parseGroup(starts[1]),
+      intInt: parseGroup(starts[2]),
+    }
+  },
+
   async readExcelFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -15,7 +57,7 @@ export const excelService = {
           const worksheet = workbook.Sheets[sheetName]
           const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 0, raw: false, dateNF: 'DD/MM/YYYY HH:MM:SS' })
 
-          // Propagate merged-cell values (colonnes qui ne se répètent que sur la première ligne du groupe)
+          // Propagate merged-cell values
           let lastOutbound        = null
           let lastSTD             = null
           let lastTotalPTM        = null
@@ -33,14 +75,14 @@ export const excelService = {
               'Segment Outbound': row['Segment Outbound'] || lastSegmentOutbound || '',
             }
           })
-          resolve(jsonData)
+
+          const feuil3 = this._parseFeuil3(workbook)
+          resolve({ data: jsonData, feuil3 })
         } catch (error) {
           reject(new Error('Erreur lors de la lecture: ' + error.message))
         }
       }
-      reader.onerror = () => {
-        reject(new Error('Erreur lors de la lecture du fichier'))
-      }
+      reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'))
       reader.readAsArrayBuffer(file)
     })
   },

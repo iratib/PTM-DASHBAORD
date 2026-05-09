@@ -23,13 +23,14 @@ const FileUpload = ({ onDataLoaded, isLoading }) => {
     }
     try {
       setError(null)
-      const data = await excelService.readExcelFile(file)
+      const result = await excelService.readExcelFile(file)
+      const { data, feuil3 } = result
       if (data.length === 0) {
         setError('Le fichier est vide ou le format des colonnes est incorrect')
         setTimeout(() => setError(null), 4000)
         return
       }
-      onDataLoaded(data)
+      onDataLoaded(data, feuil3)
     } catch (err) {
       setError(err.message)
       setTimeout(() => setError(null), 4000)

@@ -12,6 +12,7 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000 // 5 minutes
 function App() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
   const [data, setData]             = useState([])
+  const [feuil3, setFeuil3]         = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [isLoading, setIsLoading]   = useState(false)
   const [syncStatus, setSyncStatus] = useState('idle')
@@ -69,8 +70,12 @@ function App() {
   }
 
   /* ── Helpers ── */
-  const applySheetData = (newData, source = 'sheets') => {
+  const applySheetData = (newData, source = 'sheets', newFeuil3 = null) => {
     setData(newData)
+    if (newFeuil3) {
+      setFeuil3(newFeuil3)
+      sessionStorage.setItem('ptm_feuil3', JSON.stringify(newFeuil3))
+    }
     const now = new Date().toISOString()
     setLastUpdate(now)
     setDataSource(source)
@@ -137,8 +142,8 @@ function App() {
   }, [data.length > 0, dataSource]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Data ── */
-  const handleDataLoaded = async (newData) => {
-    applySheetData(newData, 'excel')
+  const handleDataLoaded = async (newData, newFeuil3 = null) => {
+    applySheetData(newData, 'excel', newFeuil3)
 
     setPushStatus('pushing')
     try {
@@ -154,6 +159,7 @@ function App() {
 
   const handleChangeFile = () => {
     setData([])
+    setFeuil3(null)
     setLastUpdate(null)
     setDataSource(null)
     setSyncStatus('idle')
@@ -162,6 +168,7 @@ function App() {
     sessionStorage.removeItem('ptm_data')
     sessionStorage.removeItem('last_update')
     sessionStorage.removeItem('ptm_data_source')
+    sessionStorage.removeItem('ptm_feuil3')
   }
 
   const handleGoogleSync = async () => {
@@ -192,6 +199,7 @@ function App() {
     const savedData       = sessionStorage.getItem('ptm_data')
     const savedLastUpdate = sessionStorage.getItem('last_update')
     const savedSource     = sessionStorage.getItem('ptm_data_source')
+    const savedFeuil3     = sessionStorage.getItem('ptm_feuil3')
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData)
@@ -199,6 +207,7 @@ function App() {
           setData(parsed)
           if (savedLastUpdate) setLastUpdate(savedLastUpdate)
           if (savedSource)     setDataSource(savedSource)
+          if (savedFeuil3)     setFeuil3(JSON.parse(savedFeuil3))
         }
       } catch { /* ignore */ }
     }
@@ -313,7 +322,7 @@ function App() {
             <FileUpload onDataLoaded={handleDataLoaded} isLoading={isLoading} />
           </div>
         ) : (
-          <Dashboard data={data} lastUpdate={lastUpdate} isLoading={isLoading} />
+          <Dashboard data={data} lastUpdate={lastUpdate} isLoading={isLoading} feuil3={feuil3} />
         )}
       </main>
 

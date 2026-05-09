@@ -193,7 +193,7 @@ const DIST_COLORS = {
   '120+ min':   '#3B82F6',
 }
 
-export const Dashboard = ({ data, lastUpdate, isLoading }) => {
+export const Dashboard = ({ data, lastUpdate, isLoading, feuil3 }) => {
   const [filters, setFilters] = useState({
     search: '',
     volOutbound: '',
@@ -670,7 +670,7 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
 
       {/* Tabs */}
       <div className="tabs">
-        {[['connexions','Connexions'],['arrivals','Arrivées'],['overview','Aperçu'],['details','Détails'],['appareils','Appareils']].map(([key, label]) => (
+        {[['connexions','Connexions'],['arrivals','Arrivées'],['overview','Aperçu'],['details','Détails'],['appareils','Appareils'],['flux','Flux PTM']].map(([key, label]) => (
           <button
             key={key}
             className={`tab ${activeTab === key ? 'active' : ''}`}
@@ -1757,6 +1757,119 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
               </div>
             )}
           </div>
+          )
+        })()}
+
+        {/* ── FLUX PTM (Feuil3) ── */}
+        {activeTab === 'flux' && (() => {
+          if (!feuil3) return (
+            <div className="flux-empty">
+              <Users size={32} className="flux-empty-icon" />
+              <p>Aucune donnée Feuil3 disponible.</p>
+              <span>Rechargez un fichier Excel contenant la feuille <strong>Feuil3</strong> (DOM-INT · INT-DOM · INT-INT).</span>
+            </div>
+          )
+
+          const totalDomInt = feuil3.domInt.reduce((s, r) => s + r.ptm, 0)
+          const totalIntDom = feuil3.intDom.reduce((s, r) => s + r.ptm, 0)
+          const totalIntInt = feuil3.intInt.reduce((s, r) => s + r.ptm, 0)
+          const grandTotal  = totalDomInt + totalIntDom + totalIntInt
+
+          const shortConnPTM = filteredData.reduce((s, d) => s + d.ptm, 0)
+
+          const categories = [
+            { key: 'domInt', label: 'DOM → INT', sublabel: 'Domestique vers International', color: 'blue',    data: feuil3.domInt, total: totalDomInt },
+            { key: 'intDom', label: 'INT → DOM', sublabel: 'International vers Domestique', color: 'success', data: feuil3.intDom, total: totalIntDom },
+            { key: 'intInt', label: 'INT → INT', sublabel: 'International vers International', color: 'warning', data: feuil3.intInt, total: totalIntInt },
+          ]
+
+          return (
+            <div className="flux-page">
+              {/* KPI row */}
+              <div className="flux-kpi-row">
+                {categories.map(cat => (
+                  <div key={cat.key} className={`flux-kpi flux-kpi--${cat.color}`}>
+                    <div className="flux-kpi-top">
+                      <span className="flux-kpi-label">{cat.label}</span>
+                      <span className="flux-kpi-count">{cat.data.length} vols</span>
+                    </div>
+                    <div className="flux-kpi-value">{cat.total}</div>
+                    <div className="flux-kpi-sub">{cat.sublabel}</div>
+                    <div className="flux-kpi-bar">
+                      <div
+                        className="flux-kpi-fill"
+                        style={{ width: grandTotal > 0 ? `${Math.round((cat.total / grandTotal) * 100)}%` : '0%' }}
+                      />
+                    </div>
+                    <div className="flux-kpi-pct">
+                      {grandTotal > 0 ? `${Math.round((cat.total / grandTotal) * 100)}%` : '—'} du total
+                    </div>
+                  </div>
+                ))}
+                <div className="flux-kpi flux-kpi--total">
+                  <div className="flux-kpi-top">
+                    <span className="flux-kpi-label">Total PTM</span>
+                    <span className="flux-kpi-count">{feuil3.domInt.length + feuil3.intDom.length + feuil3.intInt.length} vols</span>
+                  </div>
+                  <div className="flux-kpi-value">{grandTotal}</div>
+                  <div className="flux-kpi-sub">Toutes catégories</div>
+                  {shortConnPTM > 0 && (
+                    <div className="flux-kpi-check">
+                      <span className="flux-kpi-check-label">Court connexion (Feuil1)</span>
+                      <span className="flux-kpi-check-val">{shortConnPTM}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3 sections */}
+              <div className="flux-sections">
+                {categories.map(cat => (
+                  <div key={cat.key} className={`flux-section flux-section--${cat.color}`}>
+                    <div className="flux-section-header">
+                      <div className="flux-section-title">
+                        <span className={`flux-dot flux-dot--${cat.color}`} />
+                        <h3>{cat.label}</h3>
+                        <span className="flux-section-sub">{cat.sublabel}</span>
+                      </div>
+                      <div className="flux-section-stats">
+                        <span className="flux-stat"><strong>{cat.total}</strong> PTM</span>
+                        <span className="flux-stat"><strong>{cat.data.length}</strong> vols</span>
+                      </div>
+                    </div>
+                    <div className="flux-table-wrap">
+                      <table className="flux-table">
+                        <thead>
+                          <tr>
+                            <th>Vol Inbound</th>
+                            <th>STA</th>
+                            <th>Présentation PAX</th>
+                            <th>PTM</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cat.data
+                            .slice()
+                            .sort((a, b) => a.heurePres.localeCompare(b.heurePres))
+                            .map((row, i) => (
+                            <tr key={i}>
+                              <td><span className="flight-tag">{row.vol}</span></td>
+                              <td className="date-cell">{fmtTime(row.sta)}</td>
+                              <td>
+                                <span className={`flux-pres flux-pres--${cat.color}`}>{row.heurePres}</span>
+                              </td>
+                              <td className="num-cell">
+                                <span className={`flux-ptm flux-ptm--${cat.color}`}>{row.ptm}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )
         })()}
 
