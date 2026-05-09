@@ -6,7 +6,7 @@ import {
 import {
   Plane, Clock, AlertTriangle, Users, ArrowUpRight,
   Download, Search, ChevronDown, ChevronLeft, PlaneTakeoff, PlaneLanding, MapPin,
-  LayoutList, LayoutGrid
+  LayoutList, LayoutGrid, ArrowDown, Briefcase
 } from 'lucide-react'
 import excelService from '../services/excelService'
 import { googleSheetsService } from '../services/googleSheetsService'
@@ -89,6 +89,52 @@ const fmtTime = (value) => {
   return m ? `${m[1].padStart(2,'0')}:${m[2]}` : ''
 }
 
+/* ── Parse une chaîne datetime en objet Date ── */
+const parseFlightDate = (value) => {
+  if (!value) return null
+  const str = String(value).trim()
+  // M/D/YY HH:MM  (XLSX STD Outbound)
+  const m1 = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})/)
+  if (m1) {
+    const yr = parseInt(m1[3]); const year = yr < 100 ? 2000 + yr : yr
+    return new Date(year, parseInt(m1[1]) - 1, parseInt(m1[2]), parseInt(m1[4]), parseInt(m1[5]))
+  }
+  // DD/MM/YYYY HH:MM:SS  (STA Inbound)
+  const m2 = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/)
+  if (m2) {
+    return new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]), parseInt(m2[4]), parseInt(m2[5]))
+  }
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? null : d
+}
+
+/* ── Calcule la barre de process time (secondes restantes, %, couleur) ── */
+const processTimeInfo = (timeStr, now) => {
+  const flightDate = parseFlightDate(timeStr)
+  if (!flightDate) return { totalSeconds: null, pct: 0, color: 'var(--border)' }
+  const totalSeconds = Math.round((flightDate - now) / 1000)
+  const WINDOW = 7200  // fenêtre 2h en secondes
+  const pct = Math.min(100, Math.max(0, ((WINDOW - totalSeconds) / WINDOW) * 100))
+  const color = totalSeconds > 3600 ? 'var(--success)'
+              : totalSeconds > 3000 ? 'var(--warning)'
+              : totalSeconds >= 0   ? 'var(--danger)'
+              : 'var(--text-faint)'
+  return { totalSeconds, pct, color }
+}
+
+/* ── Formate les secondes en compte à rebours HH:MM:SS ── */
+const fmtCountdown = (totalSeconds) => {
+  if (totalSeconds === null) return '—'
+  const abs = Math.abs(totalSeconds)
+  const h  = Math.floor(abs / 3600)
+  const m  = Math.floor((abs % 3600) / 60)
+  const s  = abs % 60
+  const mm = String(m).padStart(2, '0')
+  const ss = String(s).padStart(2, '0')
+  if (totalSeconds < 0) return h > 0 ? `-${h}h ${mm}:${ss}` : `-${mm}:${ss}`
+  return h > 0 ? `${h}h ${mm}:${ss}` : `${mm}:${ss}`
+}
+
 // Formate un segment IATA "CMN-CDG" → "CMN → CDG"
 const fmtRoute = (segment) => {
   if (!segment) return ''
@@ -155,6 +201,13 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
   const [periodFilterAp, setPeriodFilterAp] = useState('all') // pour onglet appareils
   const [apCategoryFilter, setApCategoryFilter] = useState('all') // 'all' | 'outbound' | 'inbound'
   const [apVolFilter, setApVolFilter] = useState('')
+
+  // Horloge live — tick toutes les secondes pour les comptes à rebours
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const [flightInfo, setFlightInfo] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ptm_flight_info') || '{}') }
@@ -683,46 +736,56 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                 {cards.map(g => {
                   const bags = g.totalPTM * 2
                   const info = flightInfo[g.volOutbound] || {}
+                  const pt   = processTimeInfo(g.stdOutbound, now)
+                  const badgeStatus = g.critiques > 0 ? 'critique'
+                    : (g.minConnectionTime !== null && g.minConnectionTime < 60) ? 'attention'
+                    : null
                   return (
                     <button
                       key={g.volOutbound}
                       className={`cx-card ${g.critiques > 0 ? 'cx-card--alert' : ''}`}
                       onClick={() => setSelectedOutbound(g.volOutbound)}
                     >
+                      {/* Row 1 : icône + vol + heure */}
                       <div className="cx-card-header">
                         <div className="cx-card-header-left">
-                          <div className="cx-flight-icon"><Plane size={16} /></div>
+                          <div className="cx-flight-icon"><PlaneTakeoff size={16} /></div>
                           <span className="cx-vol">{g.volOutbound}</span>
-                          {g.critiques > 0 && (
-                            <span className="cx-alert-badge">
-                              <AlertTriangle size={11} />{g.critiques}
-                            </span>
-                          )}
                         </div>
                         <span className="cx-std-time">{fmtTime(g.stdOutbound)}</span>
                       </div>
 
-                      {g.segmentOutbound && (
-                        <div className="cx-route">
-                          <MapPin size={11} />
-                          {fmtRoute(g.segmentOutbound)}
-                        </div>
-                      )}
+                      {/* Row 2 : route + badge statut */}
+                      <div className="cx-card-row2">
+                        {g.segmentOutbound
+                          ? <div className="cx-route"><MapPin size={11} />{fmtRoute(g.segmentOutbound)}</div>
+                          : <span />}
+                        {badgeStatus === 'critique' && (
+                          <span className="cx-badge cx-badge--critique"><AlertTriangle size={10} />Critique</span>
+                        )}
+                        {badgeStatus === 'attention' && (
+                          <span className="cx-badge cx-badge--attention">Attention</span>
+                        )}
+                      </div>
 
                       <div className="cx-divider" />
 
+                      {/* Métriques avec icônes */}
                       <div className="cx-metrics">
                         <div className="cx-metric">
+                          <ArrowDown size={13} className="cx-metric-icon" />
                           <span className="cx-metric-val">{g.connections.length}</span>
                           <span className="cx-metric-lbl">Inbound</span>
                         </div>
                         <div className="cx-sep" />
                         <div className="cx-metric">
+                          <Users size={13} className="cx-metric-icon cx-metric-icon--ptm" />
                           <span className="cx-metric-val cx-ptm-val">{g.totalPTM}</span>
                           <span className="cx-metric-lbl">PTM</span>
                         </div>
                         <div className="cx-sep" />
                         <div className="cx-metric">
+                          <Briefcase size={13} className="cx-metric-icon cx-metric-icon--bags" />
                           {info.bagsReal
                             ? <span className="cx-metric-val cx-bags-real-val">{parseInt(info.bagsReal)}</span>
                             : <span className="cx-metric-val cx-bags-val">{bags}</span>
@@ -731,14 +794,29 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                         </div>
                       </div>
 
-                      <div className="cx-card-footer">
-                        <div className="cx-card-footer-left">
+                      <div className="cx-divider" />
+
+                      {/* Footer ligne 1 : compte à rebours + label */}
+                      <div className="cx-footer-line1">
+                        <Clock size={12} style={{ color: pt.color, flexShrink: 0 }} />
+                        <span className="cx-countdown" style={{ color: pt.color }}>
+                          {fmtCountdown(pt.totalSeconds)}
+                        </span>
+                        <span className="cx-countdown-label">Avant départ</span>
+                      </div>
+
+                      {/* Footer ligne 2 : immat + parking */}
+                      {(info.immatriculation || info.parking) && (
+                        <div className="cx-footer-line2">
                           {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
                           {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
-                        </div>
-                        {(info.immatriculation || info.parking) && (
                           <div className="cx-live"><span className="cx-live-dot" />Live</div>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Barre process time */}
+                      <div className="cx-process-track">
+                        <div className="cx-process-fill" style={{ width: `${pt.pct}%`, background: pt.color }} />
                       </div>
                     </button>
                   )
@@ -936,48 +1014,61 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
               <div className="cx-grid">
                 {cards.map(g => {
                   const info = flightInfo[g.volInbound] || {}
+                  const pt   = processTimeInfo(g.staInbound, now)
+                  const times = g.connections.filter(c => c.connectionTime !== null).map(c => c.connectionTime)
+                  const avgTime = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null
+                  const minTime = times.length ? Math.min(...times) : null
+                  const badgeStatus = g.critiques > 0 ? 'critique'
+                    : (minTime !== null && minTime < 60) ? 'attention'
+                    : null
                   return (
                     <button
                       key={g.volInbound}
                       className={`cx-card ${g.critiques > 0 ? 'cx-card--alert' : ''}`}
                       onClick={() => setSelectedInbound(g.volInbound)}
                     >
+                      {/* Row 1 : icône + vol + heure */}
                       <div className="cx-card-header">
                         <div className="cx-card-header-left">
                           <div className="cx-flight-icon" style={{ background: 'var(--sky-dim)', borderColor: 'rgba(14,165,233,0.2)', color: 'var(--sky)' }}>
                             <PlaneLanding size={16} />
                           </div>
                           <span className="cx-vol">{g.volInbound}</span>
-                          {g.critiques > 0 && (
-                            <span className="cx-alert-badge">
-                              <AlertTriangle size={11} />{g.critiques}
-                            </span>
-                          )}
                         </div>
                         <span className="cx-std-time" style={{ color: 'var(--sky)' }}>{fmtTime(g.staInbound)}</span>
                       </div>
 
-                      {g.segmentInbound && (
-                        <div className="cx-route">
-                          <MapPin size={11} />
-                          {fmtRoute(g.segmentInbound)}
-                        </div>
-                      )}
+                      {/* Row 2 : route + badge statut */}
+                      <div className="cx-card-row2">
+                        {g.segmentInbound
+                          ? <div className="cx-route"><MapPin size={11} />{fmtRoute(g.segmentInbound)}</div>
+                          : <span />}
+                        {badgeStatus === 'critique' && (
+                          <span className="cx-badge cx-badge--critique"><AlertTriangle size={10} />Critique</span>
+                        )}
+                        {badgeStatus === 'attention' && (
+                          <span className="cx-badge cx-badge--attention">Attention</span>
+                        )}
+                      </div>
 
                       <div className="cx-divider" />
 
+                      {/* Métriques avec icônes */}
                       <div className="cx-metrics">
                         <div className="cx-metric">
+                          <ArrowUpRight size={13} className="cx-metric-icon" />
                           <span className="cx-metric-val">{g.connections.length}</span>
                           <span className="cx-metric-lbl">Outbound</span>
                         </div>
                         <div className="cx-sep" />
                         <div className="cx-metric">
+                          <Users size={13} className="cx-metric-icon cx-metric-icon--ptm" />
                           <span className="cx-metric-val cx-ptm-val">{g.totalPTM}</span>
                           <span className="cx-metric-lbl">PTM</span>
                         </div>
                         <div className="cx-sep" />
                         <div className="cx-metric">
+                          <Briefcase size={13} className="cx-metric-icon cx-metric-icon--bags" />
                           {info.bagsReal
                             ? <span className="cx-metric-val cx-bags-real-val">{parseInt(info.bagsReal)}</span>
                             : <span className="cx-metric-val cx-bags-val">{g.totalPTM * 2}</span>
@@ -986,14 +1077,29 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
                         </div>
                       </div>
 
-                      <div className="cx-card-footer">
-                        <div className="cx-card-footer-left">
+                      <div className="cx-divider" />
+
+                      {/* Footer ligne 1 : compte à rebours + label */}
+                      <div className="cx-footer-line1">
+                        <Clock size={12} style={{ color: pt.color, flexShrink: 0 }} />
+                        <span className="cx-countdown" style={{ color: pt.color }}>
+                          {fmtCountdown(pt.totalSeconds)}
+                        </span>
+                        <span className="cx-countdown-label">Avant arrivée</span>
+                      </div>
+
+                      {/* Footer ligne 2 : immat + parking */}
+                      {(info.immatriculation || info.parking) && (
+                        <div className="cx-footer-line2">
                           {info.immatriculation && <span className="cx-immat">{info.immatriculation}</span>}
                           {info.parking && <span className="cx-parking-tag">{info.parking}</span>}
-                        </div>
-                        {(info.immatriculation || info.parking) && (
                           <div className="cx-live"><span className="cx-live-dot" />Live</div>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Barre process time */}
+                      <div className="cx-process-track">
+                        <div className="cx-process-fill" style={{ width: `${pt.pct}%`, background: pt.color }} />
                       </div>
                     </button>
                   )
