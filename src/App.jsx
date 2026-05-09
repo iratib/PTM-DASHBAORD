@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X, Clock, Sparkles } from 'lucide-react'
+import { FolderOpen, RefreshCw, CloudOff, CheckCircle, Download, X, Clock, Sparkles, Sun, Moon } from 'lucide-react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import FileUpload from './components/FileUpload'
 import Dashboard from './components/Dashboard'
@@ -22,6 +22,14 @@ function App() {
   const [autoRefreshStatus, setAutoRefreshStatus] = useState('idle') // 'idle' | 'refreshing'
   const autoRefreshRef = useRef(null)
   const countdownRef   = useRef(null)
+
+  // Theme toggle (dark / light)
+  const [theme, setTheme] = useState(() => localStorage.getItem('ptm_theme') || 'dark')
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('ptm_theme', theme)
+  }, [theme])
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   // PWA install
   const [installPrompt, setInstallPrompt]   = useState(null)
@@ -211,6 +219,13 @@ function App() {
           </div>
 
           <div className="navbar-actions">
+            <button
+              className="btn-theme-toggle"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             {pushStatus !== 'idle' && (
               <div className={`push-indicator push-${pushStatus}`}>
                 {pushStatus === 'pushing' && <><RefreshCw size={13} className="spin" /> Envoi vers Google Sheets…</>}

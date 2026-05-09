@@ -123,15 +123,17 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: var(--transition);
+  transition: color 0.15s ease, border-bottom-color 0.18s ease, opacity 0.15s ease;
   margin-bottom: -1px;
 }
 
 .tab:hover { color: var(--text); }
+.tab:active { opacity: 0.7; }
 
 .tab.active {
   color: var(--primary);
   border-bottom-color: var(--primary);
+  font-weight: 600;
 }
 
 .tab-count {
@@ -166,11 +168,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 22px 24px 18px;
-  transition: var(--transition);
+  transition: var(--transition), transform 200ms var(--ease-out);
+  animation: fadeUp 0.4s var(--ease-out) both;
 }
 
 .chart-panel:hover {
-  border-color: rgba(59,130,246,0.2);
+  border-color: rgba(59,130,246,0.22);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .panel-header {
@@ -190,12 +195,13 @@
 }
 
 .chart-tooltip {
-  background: #1A2740;
+  background: var(--bg-tooltip);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 13px;
   min-width: 120px;
+  box-shadow: var(--shadow-md);
 }
 
 .tooltip-label {
@@ -424,15 +430,17 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--transition), transform 120ms ease;
 }
 
-.cx-period-btn:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
+.cx-period-btn:hover { border-color: rgba(127,127,127,0.3); color: var(--text); }
+.cx-period-btn:active { transform: scale(0.96); }
 
 .cx-period-btn.active {
   background: var(--primary-dim);
   border-color: rgba(59,130,246,0.4);
   color: var(--primary);
+  font-weight: 600;
 }
 
 .period-dot {
@@ -463,7 +471,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 14px;
-  animation: fadeIn 0.25s ease-out;
 }
 
 .cx-card {
@@ -475,19 +482,38 @@
   text-align: left;
   width: 100%;
   font-family: inherit;
-  transition: var(--transition);
+  transition: var(--transition), transform 200ms var(--ease-out);
   display: flex;
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
+  animation: cardEnter 0.35s var(--ease-out) both;
 }
 
-.cx-card:hover {
-  border-color: rgba(59,130,246,0.4);
-  background: var(--bg-card-hover);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+/* Stagger cards 1-12 */
+.cx-grid .cx-card:nth-child(1)  { animation-delay:  0ms; }
+.cx-grid .cx-card:nth-child(2)  { animation-delay: 35ms; }
+.cx-grid .cx-card:nth-child(3)  { animation-delay: 70ms; }
+.cx-grid .cx-card:nth-child(4)  { animation-delay:105ms; }
+.cx-grid .cx-card:nth-child(5)  { animation-delay:140ms; }
+.cx-grid .cx-card:nth-child(6)  { animation-delay:175ms; }
+.cx-grid .cx-card:nth-child(7)  { animation-delay:210ms; }
+.cx-grid .cx-card:nth-child(8)  { animation-delay:245ms; }
+.cx-grid .cx-card:nth-child(9)  { animation-delay:280ms; }
+.cx-grid .cx-card:nth-child(10) { animation-delay:315ms; }
+.cx-grid .cx-card:nth-child(11) { animation-delay:350ms; }
+.cx-grid .cx-card:nth-child(12) { animation-delay:385ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  .cx-card:hover {
+    border-color: rgba(59,130,246,0.4);
+    background: var(--bg-card-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
 }
+
+.cx-card:active { transform: scale(0.98) !important; }
 
 .cx-card--alert {
   border-left: 3px solid var(--danger);
@@ -596,8 +622,8 @@
   height: 6px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 6px rgba(34,197,94,0.7);
   flex-shrink: 0;
+  animation: pulse-live 1.8s ease-in-out infinite;
 }
 
 /* ── Row 2 : route + badge statut ── */
@@ -809,7 +835,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  transition: var(--transition);
+  transition: var(--transition), transform 120ms ease;
   white-space: nowrap;
 }
 
@@ -818,6 +844,8 @@
   color: var(--primary);
   background: var(--primary-dim);
 }
+
+.cx-back:active { transform: scale(0.96); }
 
 .cx-detail-title {
   display: flex;
@@ -916,27 +944,27 @@
 .stat-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  animation: fadeIn 0.18s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .stat-modal {
-  background: #0f1e33;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   width: 100%;
   max-width: 700px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-  animation: fadeUp 0.22s ease-out;
+  box-shadow: var(--shadow-lg);
+  animation: scaleUp 0.22s var(--ease-out);
 }
 
 .stat-modal-header {
@@ -966,9 +994,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition);
+  transition: var(--transition), transform 120ms ease;
 }
-.stat-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.stat-modal-close:hover  { background: rgba(127,127,127,0.1); color: var(--text); }
+.stat-modal-close:active { transform: scale(0.9); }
 
 .stat-modal-body {
   overflow-y: auto;
@@ -1077,12 +1106,22 @@
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.1);
   box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 200ms var(--ease-out), box-shadow 200ms ease;
+  animation: cardEnter 0.4s var(--ease-out) both;
 }
 
-.bp-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+.bp-grid .bp-card:nth-child(1) { animation-delay:  0ms; }
+.bp-grid .bp-card:nth-child(2) { animation-delay: 50ms; }
+.bp-grid .bp-card:nth-child(3) { animation-delay:100ms; }
+.bp-grid .bp-card:nth-child(4) { animation-delay:150ms; }
+.bp-grid .bp-card:nth-child(5) { animation-delay:200ms; }
+.bp-grid .bp-card:nth-child(6) { animation-delay:250ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  .bp-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.5);
+  }
 }
 
 .bp-card--critique { border-color: rgba(244,63,94,0.4); }
@@ -1186,7 +1225,7 @@
 
 /* MIDDLE — Connexion */
 .bp-middle {
-  background: #0d1929;
+  background: var(--bg-bp-mid);
   padding: 14px 20px;
   display: flex;
   flex-direction: column;

@@ -6,22 +6,37 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  transition: var(--transition);
-  animation: fadeUp 0.4s ease-out;
+  transition: var(--transition), transform 200ms var(--ease-out);
+  animation: cardEnter 0.4s var(--ease-out) both;
 }
 
-.stat-card:hover {
-  border-color: rgba(255,255,255,0.12);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+/* Stagger stat cards */
+.stats-grid .stat-card:nth-child(1) { animation-delay:  0ms; }
+.stats-grid .stat-card:nth-child(2) { animation-delay: 55ms; }
+.stats-grid .stat-card:nth-child(3) { animation-delay:110ms; }
+.stats-grid .stat-card:nth-child(4) { animation-delay:165ms; }
+.stats-grid .stat-card:nth-child(5) { animation-delay:220ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  .stat-card:hover {
+    border-color: rgba(127,127,127,0.18);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .stat-card--clickable {
   cursor: pointer;
 }
 
-.stat-card--clickable:hover {
-  border-color: rgba(59,130,246,0.35);
+@media (hover: hover) and (pointer: fine) {
+  .stat-card--clickable:hover {
+    border-color: rgba(59,130,246,0.35);
+  }
+}
+
+.stat-card--clickable:active {
+  transform: scale(0.97) !important;
 }
 
 .sc-chevron {

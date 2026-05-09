@@ -13,6 +13,11 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color 0.3s ease, border-color 0.2s ease;
+}
+
+[data-theme="light"] .navbar {
+  background: rgba(240, 244, 248, 0.92);
 }
 
 .navbar-content {
@@ -71,7 +76,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: var(--transition);
+  transition: var(--transition), transform 120ms ease;
   font-family: inherit;
 }
 
@@ -80,6 +85,32 @@
   color: var(--primary);
   background: var(--primary-dim);
 }
+
+.btn-change-file:active { transform: scale(0.96); }
+
+/* ── Theme toggle ── */
+.btn-theme-toggle {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition), transform 120ms ease;
+  flex-shrink: 0;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: rgba(127,127,127,0.25);
+}
+
+.btn-theme-toggle:active { transform: scale(0.92); }
 
 /* ── SYNC GOOGLE SHEETS ── */
 .sync-wrapper {
@@ -101,7 +132,7 @@
   font-family: inherit;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--transition), transform 120ms ease;
   white-space: nowrap;
   border: 1px solid rgba(34,197,94,0.35);
   background: rgba(34,197,94,0.08);
@@ -112,6 +143,8 @@
   background: rgba(34,197,94,0.18);
   border-color: rgba(34,197,94,0.6);
 }
+
+.btn-sync:active:not(:disabled) { transform: scale(0.96); }
 
 .btn-sync:disabled {
   opacity: 0.7;
@@ -213,7 +246,7 @@
   top: calc(100% + 10px);
   right: 0;
   width: 260px;
-  background: #111F33;
+  background: var(--bg-card);
   border: 1px solid rgba(167,139,250,0.3);
   border-radius: var(--radius);
   padding: 14px 16px;
@@ -260,7 +293,7 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: #1e1e2e;
+  background: var(--bg-card);
   border: 1px solid rgba(244,63,94,0.4);
   border-radius: var(--radius-sm);
   color: #F43F5E;
