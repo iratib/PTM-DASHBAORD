@@ -267,9 +267,10 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       inboundCount:   new Set(filteredData.map(d => d['Vol Inbound']).filter(Boolean)).size,
       outboundCount:  new Set(filteredData.map(d => d['Vol Outbound'])).size,
       totalPTM:       filteredData.reduce((s, d) => s + d.ptm, 0),
-      shortConnPTM:   filteredData.filter(d => d.status === 'critique').reduce((s, d) => s + d.ptm, 0),
       avgTime:        times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 0,
       critiques:      filteredData.filter(d => d.status === 'critique').length,
+      attention:      filteredData.filter(d => d.status === 'attention').length,
+      ok:             filteredData.filter(d => d.status === 'ok').length,
     }
   }, [filteredData])
 
@@ -397,9 +398,23 @@ export const Dashboard = ({ data, lastUpdate, isLoading }) => {
       <div className="stats-grid">
         <StatCard icon={<PlaneTakeoff size={18}/>} title="Vols Outbound" value={stats.outboundCount} color="blue"   onClick={() => setActiveStatCard('outbound')} />
         <StatCard icon={<PlaneLanding size={18}/>} title="Vols Inbound"  value={stats.inboundCount}  color="sky"    onClick={() => setActiveStatCard('inbound')} />
-        <StatCard icon={<Users size={18}/>}         title="Short connexion PTM" value={stats.shortConnPTM} color="purple" onClick={() => setActiveStatCard('ptm')} />
-        <StatCard icon={<Clock size={18}/>}          title="Temps moyen"   value={`${stats.avgTime} min`} color="success" />
-        <StatCard icon={<AlertTriangle size={18}/>}  title="Critiques"     value={stats.critiques}     color="danger" subtitle="< 30 min" />
+        <StatCard icon={<Users size={18}/>}         title="Short connexion PTM" value={stats.totalPTM}      color="purple" onClick={() => setActiveStatCard('ptm')} />
+        <StatCard icon={<Clock size={18}/>}          title="Temps moyen"         value={`${stats.avgTime} min`} color="success" />
+        <StatCard
+          icon={<AlertTriangle size={18}/>}
+          title="Statuts connexions"
+          color="danger"
+          value={
+            <div className="sc-statuts">
+              <span className="sc-statut sc-statut--critique">{stats.critiques}<span className="sc-statut-lbl">C</span></span>
+              <span className="sc-statut-sep">·</span>
+              <span className="sc-statut sc-statut--attention">{stats.attention}<span className="sc-statut-lbl">A</span></span>
+              <span className="sc-statut-sep">·</span>
+              <span className="sc-statut sc-statut--ok">{stats.ok}<span className="sc-statut-lbl">OK</span></span>
+            </div>
+          }
+          subtitle="critique · attention · ok"
+        />
       </div>
 
       {/* ── MODAL STAT CARD ── */}

@@ -78,6 +78,40 @@
   margin-top: 2px;
 }
 
+/* ── Statuts triple dans la 5e carte ── */
+.sc-statuts {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sc-statut {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sc-statut-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+}
+
+.sc-statut--critique { color: var(--danger); }
+.sc-statut--attention { color: var(--warning); }
+.sc-statut--ok { color: var(--success); }
+
+.sc-statut-sep {
+  font-size: 16px;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
 @media (max-width: 768px) {
   .sc-value { font-size: 22px; }
   .stat-card { padding: 14px 16px; }
