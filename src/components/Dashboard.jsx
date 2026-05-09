@@ -89,23 +89,31 @@ const fmtTime = (value) => {
   return m ? `${m[1].padStart(2,'0')}:${m[2]}` : ''
 }
 
-/* ── Parse une chaîne datetime en objet Date ── */
-const parseFlightDate = (value) => {
+/* ── Extrait HH:MM depuis n'importe quel format datetime et applique à aujourd'hui ──
+   La date du fichier Excel est ignorée : on utilise toujours la date courante (now).
+   Règle J+1 : si le résultat est > 12h dans le passé → vol du lendemain (après minuit). ── */
+const parseFlightDate = (value, now = new Date()) => {
   if (!value) return null
   const str = String(value).trim()
-  // M/D/YY HH:MM  (XLSX STD Outbound)
-  const m1 = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})/)
-  if (m1) {
-    const yr = parseInt(m1[3]); const year = yr < 100 ? 2000 + yr : yr
-    return new Date(year, parseInt(m1[1]) - 1, parseInt(m1[2]), parseInt(m1[4]), parseInt(m1[5]))
+
+  let h = null, m = null
+  // M/D/YY HH:MM  ou  DD/MM/YYYY HH:MM
+  const rx = str.match(/\d{1,4}\/\d{1,4}\/\d{2,4}\s+(\d{1,2}):(\d{2})/)
+  if (rx) { h = parseInt(rx[1]); m = parseInt(rx[2]) }
+  else {
+    // HH:MM seul
+    const rx2 = str.match(/^(\d{1,2}):(\d{2})/)
+    if (rx2) { h = parseInt(rx2[1]); m = parseInt(rx2[2]) }
   }
-  // DD/MM/YYYY HH:MM:SS  (STA Inbound)
-  const m2 = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/)
-  if (m2) {
-    return new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]), parseInt(m2[4]), parseInt(m2[5]))
-  }
-  const d = new Date(str)
-  return isNaN(d.getTime()) ? null : d
+  if (h === null) return null
+
+  // Applique l'heure à la date d'aujourd'hui
+  const fd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0)
+
+  // Si le vol semble > 12h dans le passé → c'est un vol J+1 (après minuit)
+  if (fd - now < -12 * 3600 * 1000) fd.setDate(fd.getDate() + 1)
+
+  return fd
 }
 
 /* ── Calcule la barre de process time (secondes restantes, %, couleur) ── */
